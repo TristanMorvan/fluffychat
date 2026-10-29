@@ -62,45 +62,38 @@ object BubbleNotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
+        val senderPerson = Person.Builder().setName(sender ?: title).apply {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                avatarBytes?.let { bytes ->
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.let {
+                        setIcon(android.graphics.drawable.Icon.createWithBitmap(it))
+                    }
+                }
+            }
+        }.build()
+
+        val style = NotificationCompat.MessagingStyle(
+            Person.Builder().setName("Vous").build(),
+        )
+        style.addMessage(text, System.currentTimeMillis(), senderPerson)
+
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title)
             .setContentText(text)
-            .setStyle(
-                NotificationCompat.MessagingStyle(
-                    Person.Builder().setName("Vous").build(),
-                ).apply {
-                    addMessage(
-                        text,
-                        System.currentTimeMillis(),
-                        Person.Builder()
-                            .setName(sender ?: title)
-                            .apply {
-                                avatarBytes?.let { bytes ->
-                                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                                        ?.let { icon ->
-                                            setIcon(
-                                                androidx.core.graphics.drawable.IconCompat
-                                                    .createWithBitmap(icon),
-                                            )
-                                        }
-                                }
-                            }
-                            .build(),
-                    )
-                },
-            )
+            .setStyle(style)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setContentIntent(contentIntent)
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
+            .setShortcutId(shortcutId)
             .apply { groupKey?.let { setGroup(it) } }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             builder.setBubbleMetadata(
-                Notification.BubbleMetadata.Builder(contentIntent, null)
+                Notification.BubbleMetadata.Builder(shortcutId)
+                    .setIntent(contentIntent)
                     .setDesiredHeight(600)
-                    .setShortcutId(shortcutId)
                     .setAutoExpandBubble(false)
                     .setSuppressNotification(false)
                     .build(),
