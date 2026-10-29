@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Monochrome du flavor titucle : silhouette blanche (alpha de l'avant-plan Titucle)
+     réduite de 16% comme l'amont, pour rester dans la zone sûre de l'adaptive icon. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/titucle_launcher_monochrome"
+    android:inset="16%" />

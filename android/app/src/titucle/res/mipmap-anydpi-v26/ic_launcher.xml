@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Flavor titucle : drawables à noms uniques (titucle_*) pour qu'aucune ressource
+     amont (ic_launcher_background.png à toutes les densités) ne puisse les masquer.
+     Monochrome Android 12+ : silhouette blanche dérivée de l'avant-plan Titucle,
+     inset 16% comme l'amont, pour que les icônes « themed » One UI n'utilisent pas
+     le monochrome FluffyChat. -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@drawable/ic_launcher_background"/>
-    <foreground android:drawable="@drawable/ic_launcher_foreground"/>
+    <background android:drawable="@drawable/titucle_launcher_background"/>
+    <foreground android:drawable="@drawable/titucle_launcher_foreground"/>
+    <monochrome android:drawable="@drawable/titucle_launcher_monochrome_inset"/>
 </adaptive-icon>
