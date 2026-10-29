@@ -1,17 +1,16 @@
 package chat.fluffy.fluffychat
 
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.app.Person
-import android.app.RemoteInput
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.app.Person
+import androidx.core.graphics.drawable.IconCompat
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.BasicMessageChannel
 import io.flutter.plugin.common.StandardMessageCodec
@@ -63,11 +62,9 @@ object BubbleNotificationHelper {
         )
 
         val senderPerson = Person.Builder().setName(sender ?: title).apply {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                avatarBytes?.let { bytes ->
-                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.let {
-                        setIcon(android.graphics.drawable.Icon.createWithBitmap(it))
-                    }
+            avatarBytes?.let { bytes ->
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.let {
+                    setIcon(IconCompat.createWithBitmap(it))
                 }
             }
         }.build()
@@ -89,16 +86,17 @@ object BubbleNotificationHelper {
             .setShortcutId(shortcutId)
             .apply { groupKey?.let { setGroup(it) } }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            builder.setBubbleMetadata(
-                Notification.BubbleMetadata.Builder(shortcutId)
-                    .setIntent(contentIntent)
-                    .setDesiredHeight(600)
-                    .setAutoExpandBubble(false)
-                    .setSuppressNotification(false)
-                    .build(),
+        builder.setBubbleMetadata(
+            NotificationCompat.BubbleMetadata.Builder(
+                contentIntent,
+                IconCompat.createWithResource(context, R.mipmap.ic_launcher),
             )
-        }
+                .setDesiredHeight(600)
+                .setShortcutId(shortcutId)
+                .setAutoExpandBubble(false)
+                .setSuppressNotification(false)
+                .build(),
+        )
 
         NotificationManagerCompat.from(context).notify(id, builder.build())
     }
