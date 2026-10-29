@@ -119,6 +119,7 @@ class BackgroundPush {
           } catch (e, s) {
             Logs().wtf('Bubble Tap crashed', e, s);
           }
+          return null;
         });
       }
       await _flutterLocalNotificationsPlugin.initialize(

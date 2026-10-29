@@ -366,23 +366,22 @@ Future<void> _tryPushHelper(
       event.room.isDirectChat &&
       event.type != RtcNotificationContent.eventType) {
     try {
-      await const MethodChannel('chat.fluffy/bubbles').invokeMethod<void>(
-        'showBubble',
-        <String, Object?>{
-          'id': notification.notificationId,
-          'title': event.room.getLocalizedDisplayname(MatrixLocals(l10n)),
-          'text': body,
-          'sender': senderName,
-          'shortcutId': event.room.id,
-          'groupKey': client.clientName,
-          'payload': FluffyChatPushPayload(
-            client.clientName,
-            event.room.id,
-            event.eventId,
-          ).toString(),
-          'avatar': senderAvatarFile,
-        },
-      );
+      await const MethodChannel(
+        'chat.fluffy/bubbles',
+      ).invokeMethod<void>('showBubble', <String, Object?>{
+        'id': notification.notificationId,
+        'title': event.room.getLocalizedDisplayname(MatrixLocals(l10n)),
+        'text': body,
+        'sender': senderName,
+        'shortcutId': event.room.id,
+        'groupKey': client.clientName,
+        'payload': FluffyChatPushPayload(
+          client.clientName,
+          event.room.id,
+          event.eventId,
+        ).toString(),
+        'avatar': senderAvatarFile,
+      });
       Logs().v('Bubble notification shown for ${event.room.id}');
       return;
     } catch (e, s) {

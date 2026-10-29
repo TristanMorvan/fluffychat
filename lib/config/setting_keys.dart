@@ -53,7 +53,10 @@ enum AppSettings<T> {
   ),
   displayChatDetailsColumn('chat.fluffy.display_chat_details_column', false),
   // AppConfig-mirrored settings
-  applicationName<String>('chat.fluffy.application_name', 'FluffyChat (Titule)'),
+  applicationName<String>(
+    'chat.fluffy.application_name',
+    'FluffyChat (Titule)',
+  ),
   defaultHomeserver<String>(
     'chat.fluffy.default_homeserver',
     'https://matrix.titucle.ovh',
@@ -85,8 +88,10 @@ enum AppSettings<T> {
   showThumbnailsInTimeline<bool>('chat.fluffy.showThumbnailsInTimeline', true),
   doubleTapToReact<bool>('chat.fluffy.double_tap_to_react', false),
   doubleTapReaction<String>('chat.fluffy.double_tap_reaction', '❤️'),
+
   /// Fork: emoji envoyé d'un tap quand le champ de saisie est vide ('' = désactivé)
   quickSendEmoji<String>('chat.fluffy.quick_send_emoji', ''),
+
   /// Fork: bulles Android (chat heads) pour les discussions directes
   androidBubbles<bool>('chat.fluffy.android_bubbles', false),
   benchmarksInLogs<bool>('chat.fluffy.benchmarks_in_logs', false),
