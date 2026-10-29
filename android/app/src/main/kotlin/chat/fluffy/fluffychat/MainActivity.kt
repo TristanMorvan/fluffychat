@@ -4,13 +4,11 @@ import io.flutter.embedding.android.FlutterFragment
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.dart.DartExecutor.DartEntrypoint
-import io.flutter.plugin.common.IsolateNameServer
 import io.flutter.plugin.common.MethodChannel
 
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import org.json.JSONObject
 
 class MainActivity : FlutterFragmentActivity() {
 
@@ -43,15 +41,7 @@ class MainActivity : FlutterFragmentActivity() {
         val payload = intent?.getStringExtra(BubbleTapReceiver.EXTRA_PAYLOAD) ?: return
         intent.removeExtra(BubbleTapReceiver.EXTRA_PAYLOAD)
         val id = intent.getIntExtra(BubbleTapReceiver.EXTRA_NOTIFICATION_ID, 0)
-        val executor = engine?.dartExecutor ?: return
-        val port = IsolateNameServer.lookupPortByName(executor, BubbleTapReceiver.MAIN_ISOLATE_PORT) ?: return
-        val json = JSONObject()
-            .put("type", "selectNotification")
-            .put("id", id)
-            .put("payload", payload)
-            .put("data", JSONObject())
-            .toString()
-        port.send(json)
+        BubbleNotificationHelper.sendTapToFlutter(engine, payload, id)
     }
 
     // Prevent Flutter engine gets destroyed on back button close.

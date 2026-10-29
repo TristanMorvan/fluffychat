@@ -17,6 +17,7 @@ import 'package:fluffychat/main.dart';
 import 'package:fluffychat/utils/notification_background_handler.dart';
 import 'package:fluffychat/utils/push_helper.dart';
 import 'package:fluffychat/widgets/fluffy_chat_app.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:material_ui/material_ui.dart';
@@ -94,6 +95,29 @@ class BackgroundPush {
             );
           } catch (e, s) {
             Logs().wtf('Main Notification Tap crashed', e, s);
+          }
+        });
+        // Fork: taps sur les bulles Android, relayés par le code natif
+        // (BasicMessageChannel Kotlin → ici, même traitement qu'une notif classique)
+        const BasicMessageChannel<Object?, StandardMessageCodec>(
+          'chat.fluffy/bubble_tap',
+          StandardMessageCodec(),
+        ).setMessageHandler((message) async {
+          if (message is! Map) return;
+          try {
+            await notificationTap(
+              NotificationResponse(
+                notificationResponseType:
+                    NotificationResponseType.selectNotification,
+                id: message['id'] as int?,
+                payload: message['payload'] as String?,
+              ),
+              clients: clients,
+              router: FluffyChatApp.router,
+              l10n: l10n,
+            );
+          } catch (e, s) {
+            Logs().wtf('Bubble Tap crashed', e, s);
           }
         });
       }

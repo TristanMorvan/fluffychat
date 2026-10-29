@@ -12,6 +12,9 @@ import android.graphics.BitmapFactory
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.BasicMessageChannel
+import io.flutter.plugin.common.StandardMessageCodec
 
 /**
  * Fork: bulles Android (chat heads) pour les discussions directes.
@@ -20,6 +23,20 @@ import androidx.core.app.NotificationManagerCompat
  */
 object BubbleNotificationHelper {
     const val CHANNEL_ID = "fluffychat_bubble"
+
+    // Fork: canal de tap partagé avec Dart (BasicMessageChannel, l'ancien
+    // IsolateNameServer n'existe plus dans l'embedding Flutter actuel)
+    const val TAP_CHANNEL = "chat.fluffy/bubble_tap"
+
+    fun sendTapToFlutter(engine: FlutterEngine?, payload: String, id: Int): Boolean {
+        val messenger = engine?.dartExecutor?.binaryMessenger ?: return false
+        BasicMessageChannel(
+            messenger,
+            TAP_CHANNEL,
+            StandardMessageCodec.INSTANCE,
+        ).send(mapOf("id" to id, "payload" to payload))
+        return true
+    }
 
     fun showBubble(
         context: Context,
@@ -102,8 +119,7 @@ object BubbleNotificationHelper {
             "Bulles de discussion",
             NotificationManager.IMPORTANCE_HIGH,
         ).apply {
-            allowBubbles = true
-            setBubblesBypassDnd(false)
+            setAllowBubbles(true)
         }
         manager.createNotificationChannel(channel)
     }
