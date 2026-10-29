@@ -75,6 +75,15 @@ class SettingsNotificationsView extends StatelessWidget {
                       title: L10n.of(context).playSoundOnNotification,
                       setting: AppSettings.webNotificationSound,
                     ),
+                  // Fork: bulles Android (chat heads) pour les DM
+                  if (PlatformInfos.isAndroid)
+                    SettingsSwitchListTile.adaptive(
+                      title: 'Bulles de discussion (Android)',
+                      subtitle:
+                          'Affiche les messages directs en bulles flottantes (chat heads). '
+                          "Nécessite d'autoriser les bulles pour l'application dans les réglages Android.",
+                      setting: AppSettings.androidBubbles,
+                    ),
                   if (pushRules != null)
                     for (final category in pushCategories) ...[
                       ListTile(

@@ -21,6 +21,7 @@ import 'package:fluffychat/utils/notification_background_handler.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
 import 'package:fluffychat/utils/start_push_foreground_service.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_new_badger/flutter_new_badger.dart';
@@ -358,6 +359,36 @@ Future<void> _tryPushHelper(
   }
 
   final needsTitleAndBody = !PlatformInfos.isAndroid;
+
+  // Fork: bulles Android — remplace la notif classique pour les DM (canal allowBubbles natif)
+  if (PlatformInfos.isAndroid &&
+      AppSettings.androidBubbles.value &&
+      event.room.isDirectChat &&
+      event.type != RtcNotificationContent.eventType) {
+    try {
+      await const MethodChannel('chat.fluffy/bubbles').invokeMethod<void>(
+        'showBubble',
+        <String, Object?>{
+          'id': notification.notificationId,
+          'title': event.room.getLocalizedDisplayname(MatrixLocals(l10n)),
+          'text': body,
+          'sender': senderName,
+          'shortcutId': event.room.id,
+          'groupKey': client.clientName,
+          'payload': FluffyChatPushPayload(
+            client.clientName,
+            event.room.id,
+            event.eventId,
+          ).toString(),
+          'avatar': senderAvatarFile,
+        },
+      );
+      Logs().v('Bubble notification shown for ${event.room.id}');
+      return;
+    } catch (e, s) {
+      Logs().w('Bubble notification failed, falling back to normal', e, s);
+    }
+  }
 
   await flutterLocalNotificationsPlugin.show(
     id: notification.notificationId,

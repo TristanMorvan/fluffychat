@@ -35,6 +35,15 @@
         android:fullBackupContent="false"
         android:localeConfig="@xml/locale_config"
     >
+        <!-- Fork: tap sur les bulles Android -->
+        <receiver
+            android:name=".BubbleTapReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="chat.fluffy.fluffychat.BUBBLE_TAP" />
+            </intent-filter>
+        </receiver>
+
         <activity
             android:name=".MainActivity"
             android:launchMode="singleTask"

@@ -80,6 +80,8 @@ enum AppSettings<T> {
   doubleTapReaction<String>('chat.fluffy.double_tap_reaction', '❤️'),
   /// Fork: emoji envoyé d'un tap quand le champ de saisie est vide ('' = désactivé)
   quickSendEmoji<String>('chat.fluffy.quick_send_emoji', ''),
+  /// Fork: bulles Android (chat heads) pour les discussions directes
+  androidBubbles<bool>('chat.fluffy.android_bubbles', false),
   benchmarksInLogs<bool>('chat.fluffy.benchmarks_in_logs', false),
   autoSendErrorReports<bool?>('chat.fluffy.auto_send_eror_reports', null),
   knownErrorHashes<List<String>>('chat.fluffy.known_crash_hashes', []),
