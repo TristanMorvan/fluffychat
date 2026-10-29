@@ -136,8 +136,10 @@ class SettingsChatView extends StatelessWidget {
                 ),
               // Fork: pouce rapide — emoji envoyé d'un tap quand le champ est vide
               ListTile(
-                title: Text(L10n.of(context).send),
-                subtitle: Text(L10n.of(context).doubleTapToReactDescription),
+                title: const Text('Pouce rapide'),
+                subtitle: const Text(
+                  'Champ vide : le bouton d’envoi devient l’emoji choisi, un tap l’envoie',
+                ),
                 trailing: Switch(
                   value: AppSettings.quickSendEmoji.value.isNotEmpty,
                   onChanged: (bool enabled) async {
@@ -150,7 +152,7 @@ class SettingsChatView extends StatelessWidget {
               ),
               if (AppSettings.quickSendEmoji.value.isNotEmpty)
                 ListTile(
-                  title: Text(L10n.of(context).doubleTapReaction),
+                  title: const Text('Emoji du pouce rapide'),
                   trailing: Text(
                     AppSettings.quickSendEmoji.value,
                     style: const TextStyle(fontSize: 24),
@@ -160,7 +162,7 @@ class SettingsChatView extends StatelessWidget {
                       context: context,
                       builder: (context) => Scaffold(
                         appBar: AppBar(
-                          title: Text(L10n.of(context).doubleTapReaction),
+                          title: const Text('Emoji du pouce rapide'),
                           leading: CloseButton(
                             onPressed: () => Navigator.of(context).pop(null),
                           ),

@@ -335,7 +335,11 @@ class ChatInputRow extends StatelessWidget {
                     child:
                         PlatformInfos.platformCanRecord &&
                             !controller.sendController.text.isNotEmpty &&
-                            controller.editEvent == null
+                            controller.editEvent == null &&
+                            // Fork: pouce rapide actif ⇒ le bouton d'envoi
+                            // (emoji) prend la place du micro champ vide
+                            !(AppSettings.quickSendEmoji.value.isNotEmpty &&
+                                controller.replyEvent == null)
                         ? HoverBuilder(
                             builder: (context, hovered) => IconButton(
                               tooltip: L10n.of(context).voiceMessage,
