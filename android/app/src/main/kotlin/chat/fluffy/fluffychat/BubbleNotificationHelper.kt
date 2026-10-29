@@ -75,7 +75,9 @@ object BubbleNotificationHelper {
         style.addMessage(text, System.currentTimeMillis(), senderPerson)
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            // Fork: pastille = drawable silhouette (un mipmap donnerait une
+            // pastille blanche pleine sur beaucoup de ROMs)
+            .setSmallIcon(R.drawable.ic_stat_bubble)
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(style)
