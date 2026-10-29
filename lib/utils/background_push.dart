@@ -99,7 +99,7 @@ class BackgroundPush {
         });
         // Fork: taps sur les bulles Android, relayés par le code natif
         // (BasicMessageChannel Kotlin → ici, même traitement qu'une notif classique)
-        const BasicMessageChannel<Object?, StandardMessageCodec>(
+        const BasicMessageChannel<Object?>(
           'chat.fluffy/bubble_tap',
           StandardMessageCodec(),
         ).setMessageHandler((message) async {
@@ -108,7 +108,7 @@ class BackgroundPush {
             await notificationTap(
               NotificationResponse(
                 notificationResponseType:
-                    NotificationResponseType.selectNotification,
+                    NotificationResponseType.selectedNotification,
                 id: message['id'] as int?,
                 payload: message['payload'] as String?,
               ),
