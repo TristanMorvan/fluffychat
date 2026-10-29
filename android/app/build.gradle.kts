@@ -84,6 +84,16 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
         }
     }
+
+    // Fork: flavor titucle = build perso de Tristan (applicationId propre,
+    // icône dans src/titucle/res, cohabite avec le build F-Droid)
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("titucle") {
+            dimension = "distribution"
+            applicationId = "org.titucle.fluffychat"
+        }
+    }
 }
 
 kotlin {
