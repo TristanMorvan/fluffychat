@@ -134,6 +134,78 @@ class SettingsChatView extends StatelessWidget {
                     }
                   },
                 ),
+              // Fork: pouce rapide — emoji envoyé d'un tap quand le champ est vide
+              ListTile(
+                title: Text(L10n.of(context).send),
+                subtitle: Text(L10n.of(context).doubleTapToReactDescription),
+                trailing: Switch(
+                  value: AppSettings.quickSendEmoji.value.isNotEmpty,
+                  onChanged: (bool enabled) async {
+                    await AppSettings.quickSendEmoji.setItem(
+                      enabled ? '👍' : '',
+                    );
+                    controller.updateState();
+                  },
+                ),
+              ),
+              if (AppSettings.quickSendEmoji.value.isNotEmpty)
+                ListTile(
+                  title: Text(L10n.of(context).doubleTapReaction),
+                  trailing: Text(
+                    AppSettings.quickSendEmoji.value,
+                    style: const TextStyle(fontSize: 24),
+                  ),
+                  onTap: () async {
+                    final emoji = await showAdaptiveBottomSheet<String>(
+                      context: context,
+                      builder: (context) => Scaffold(
+                        appBar: AppBar(
+                          title: Text(L10n.of(context).doubleTapReaction),
+                          leading: CloseButton(
+                            onPressed: () => Navigator.of(context).pop(null),
+                          ),
+                        ),
+                        body: SizedBox(
+                          height: double.infinity,
+                          child: EmojiPicker(
+                            onEmojiSelected: (_, emoji) =>
+                                Navigator.of(context).pop(emoji.emoji),
+                            config: Config(
+                              locale: Localizations.localeOf(context),
+                              emojiViewConfig: const EmojiViewConfig(
+                                backgroundColor: Colors.transparent,
+                              ),
+                              bottomActionBarConfig:
+                                  const BottomActionBarConfig(enabled: false),
+                              categoryViewConfig: CategoryViewConfig(
+                                initCategory: Category.RECENT,
+                                backspaceColor: theme.colorScheme.primary,
+                                iconColor: theme.colorScheme.primary.withAlpha(
+                                  128,
+                                ),
+                                iconColorSelected: theme.colorScheme.primary,
+                                indicatorColor: theme.colorScheme.primary,
+                                backgroundColor: theme.colorScheme.surface,
+                              ),
+                              skinToneConfig: SkinToneConfig(
+                                dialogBackgroundColor: Color.lerp(
+                                  theme.colorScheme.surface,
+                                  theme.colorScheme.primaryContainer,
+                                  0.75,
+                                )!,
+                                indicatorColor: theme.colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                    if (emoji != null) {
+                      await AppSettings.quickSendEmoji.setItem(emoji);
+                      controller.updateState();
+                    }
+                  },
+                ),
               Divider(color: theme.dividerColor),
               ListTile(
                 title: Text(

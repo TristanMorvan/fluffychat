@@ -755,7 +755,14 @@ class ChatController extends State<ChatPageWithRoom>
   Future<void> send() async {
     final proceed = await showTrustUserInRoomDialog(context, room);
     if (!mounted || !proceed) return;
-    if (sendController.text.trim().isEmpty) return;
+    // Fork: pouce rapide — champ vide ⇒ envoie l'emoji configuré (hors réponse/édition)
+    if (sendController.text.trim().isEmpty) {
+      final quickEmoji = AppSettings.quickSendEmoji.value;
+      if (quickEmoji.isEmpty || replyEvent != null || editEvent != null) {
+        return;
+      }
+      sendController.text = quickEmoji;
+    }
     _storeInputTimeoutTimer?.cancel();
     final prefs = Matrix.of(context).store;
     prefs.remove('draft_$roomId');

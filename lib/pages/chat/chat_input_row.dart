@@ -379,7 +379,17 @@ class ChatInputRow extends StatelessWidget {
                               backgroundColor: theme.bubbleColor,
                               foregroundColor: theme.onBubbleColor,
                             ),
-                            icon: const Icon(Icons.send_outlined),
+                            // Fork: pouce rapide — champ vide ⇒ le bouton devient l'emoji configuré
+                            icon:
+                                controller.sendController.text.isEmpty &&
+                                    controller.replyEvent == null &&
+                                    controller.editEvent == null &&
+                                    AppSettings.quickSendEmoji.value.isNotEmpty
+                                ? Text(
+                                    AppSettings.quickSendEmoji.value,
+                                    style: const TextStyle(fontSize: 22),
+                                  )
+                                : const Icon(Icons.send_outlined),
                           ),
                   ),
                 ],
