@@ -92,7 +92,6 @@ object BubbleNotificationHelper {
                 IconCompat.createWithResource(context, R.mipmap.ic_launcher),
             )
                 .setDesiredHeight(600)
-                .setShortcutId(shortcutId)
                 .setAutoExpandBubble(false)
                 .setSuppressNotification(false)
                 .build(),
