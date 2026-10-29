@@ -10,6 +10,7 @@ import 'package:fluffychat/pages/chat/recording_input_row.dart';
 import 'package:fluffychat/pages/chat/recording_view_model.dart';
 import 'package:fluffychat/utils/other_party_can_receive.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
+import 'package:fluffychat/utils/quick_send_emoji.dart';
 import 'package:fluffychat/widgets/avatar.dart';
 import 'package:fluffychat/widgets/hover_builder.dart';
 import 'package:fluffychat/widgets/matrix.dart';
@@ -338,7 +339,8 @@ class ChatInputRow extends StatelessWidget {
                             controller.editEvent == null &&
                             // Fork: pouce rapide actif ⇒ le bouton d'envoi
                             // (emoji) prend la place du micro champ vide
-                            !(AppSettings.quickSendEmoji.value.isNotEmpty &&
+                            !(resolveQuickSendEmoji(controller.room.id)
+                                    .isNotEmpty &&
                                 controller.replyEvent == null)
                         ? HoverBuilder(
                             builder: (context, hovered) => IconButton(
@@ -379,18 +381,42 @@ class ChatInputRow extends StatelessWidget {
                             key: Key('send_button'),
                             tooltip: L10n.of(context).send,
                             onPressed: controller.send,
+                            // Fork: appui long = choisir l'emoji du pouce
+                            // rapide pour CETTE conversation (override local)
+                            onLongPress: () async {
+                              final result = await showQuickSendEmojiSheet(
+                                context,
+                                roomId: controller.room.id,
+                              );
+                              if (result is String) {
+                                await setQuickSendEmojiOverride(
+                                  controller.room.id,
+                                  result,
+                                );
+                              } else if (result is QuickSendEmojiReset) {
+                                await setQuickSendEmojiOverride(
+                                  controller.room.id,
+                                  null,
+                                );
+                              } else {
+                                return;
+                              }
+                              controller.updateView();
+                            },
                             style: IconButton.styleFrom(
                               backgroundColor: theme.bubbleColor,
                               foregroundColor: theme.onBubbleColor,
                             ),
-                            // Fork: pouce rapide — champ vide ⇒ le bouton devient l'emoji configuré
+                            // Fork: pouce rapide — champ vide ⇒ le bouton devient
+                            // l'emoji résolu (override pièce > réglage global)
                             icon:
                                 controller.sendController.text.isEmpty &&
                                     controller.replyEvent == null &&
                                     controller.editEvent == null &&
-                                    AppSettings.quickSendEmoji.value.isNotEmpty
+                                    resolveQuickSendEmoji(controller.room.id)
+                                        .isNotEmpty
                                 ? Text(
-                                    AppSettings.quickSendEmoji.value,
+                                    resolveQuickSendEmoji(controller.room.id),
                                     style: const TextStyle(fontSize: 22),
                                   )
                                 : const Icon(Icons.send_outlined),

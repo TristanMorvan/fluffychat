@@ -273,6 +273,9 @@ Future<void> _tryPushHelper(
   final androidPlatformChannelSpecifics = AndroidNotificationDetails(
     AppConfig.pushNotificationsChannelId,
     l10n.incomingMessages,
+    // Fork: pastille de notif propre au fork (overlay titucle = T jaune,
+    // source set main = silhouette) ; remplace l'icône launcher par défaut
+    icon: '@drawable/ic_stat_titucle',
     number: notification.counts?.unread,
     category: AndroidNotificationCategory.message,
     shortcutId: event.room.id,
@@ -361,10 +364,12 @@ Future<void> _tryPushHelper(
   final needsTitleAndBody = !PlatformInfos.isAndroid;
 
   // Fork: bulles Android — remplace la notif classique pour les DM (canal allowBubbles natif)
+  // Fork: message mono-emoji ⇒ pas de bulle (comme Messenger), notif classique.
   if (PlatformInfos.isAndroid &&
       AppSettings.androidBubbles.value &&
       event.room.isDirectChat &&
-      event.type != RtcNotificationContent.eventType) {
+      event.type != RtcNotificationContent.eventType &&
+      !isSingleEmojiNotification(body)) {
     try {
       await const MethodChannel(
         'chat.fluffy/bubbles',
@@ -505,6 +510,21 @@ Future<void> _setShortcut(
     ),
   );
 }
+
+/// Fork: vrai si [body] est exactement UN seul emoji (codepoint pictographique
+/// ± variante de présentation ZWJ/modificateur de tonalité, ou drapeau
+/// regional-indicator). Toute autre chaîne (même « emoji + texte » ou deux
+/// emojis) renvoie false — utilisé pour ne pas bulle-ifier les messages
+/// mono-emoji, comme Messenger.
+final RegExp _singleEmojiRegExp = RegExp(
+  r'^(?:\p{Extended_Pictographic}(?:\u{FE0F})?(?:\p{Emoji_Modifier})?'
+  r'(?:\u{200D}\p{Extended_Pictographic}(?:\u{FE0F})?(?:\p{Emoji_Modifier})?)*'
+  r'|\p{Regional_Indicator}{2})$',
+  unicode: true,
+);
+
+bool isSingleEmojiNotification(String body) =>
+    _singleEmojiRegExp.hasMatch(body.trim());
 
 extension on PushNotification {
   String? get clientName =>

@@ -29,6 +29,7 @@ import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:fluffychat/utils/ogg_opus_remuxer.dart';
 import 'package:fluffychat/utils/other_party_can_receive.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
+import 'package:fluffychat/utils/quick_send_emoji.dart';
 import 'package:fluffychat/utils/show_scaffold_dialog.dart';
 import 'package:fluffychat/widgets/adaptive_dialogs/show_ok_cancel_alert_dialog.dart';
 import 'package:fluffychat/widgets/adaptive_dialogs/show_text_input_dialog.dart';
@@ -755,9 +756,10 @@ class ChatController extends State<ChatPageWithRoom>
   Future<void> send() async {
     final proceed = await showTrustUserInRoomDialog(context, room);
     if (!mounted || !proceed) return;
-    // Fork: pouce rapide — champ vide ⇒ envoie l'emoji configuré (hors réponse/édition)
+    // Fork: pouce rapide — champ vide ⇒ envoie l'emoji résolu pour la
+    // conversation (override pièce > global), hors réponse/édition
     if (sendController.text.trim().isEmpty) {
-      final quickEmoji = AppSettings.quickSendEmoji.value;
+      final quickEmoji = resolveQuickSendEmoji(roomId);
       if (quickEmoji.isEmpty || replyEvent != null || editEvent != null) {
         return;
       }

@@ -9,6 +9,7 @@ import 'package:fluffychat/config/themes.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/adaptive_bottom_sheet.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
+import 'package:fluffychat/utils/quick_send_emoji.dart';
 import 'package:fluffychat/widgets/layouts/max_width_body.dart';
 import 'package:fluffychat/widgets/settings_switch_list_tile.dart';
 import 'package:go_router/go_router.dart';
@@ -138,7 +139,7 @@ class SettingsChatView extends StatelessWidget {
               ListTile(
                 title: const Text('Pouce rapide'),
                 subtitle: const Text(
-                  'Champ vide : le bouton d’envoi devient l’emoji choisi, un tap l’envoie',
+                  'Champ vide : le bouton d’envoi devient l’emoji choisi, un tap l’envoie (appui long dans une conversation = emoji propre à cette conversation)',
                 ),
                 trailing: Switch(
                   value: AppSettings.quickSendEmoji.value.isNotEmpty,
@@ -153,56 +154,16 @@ class SettingsChatView extends StatelessWidget {
               if (AppSettings.quickSendEmoji.value.isNotEmpty)
                 ListTile(
                   title: const Text('Emoji du pouce rapide'),
+                  subtitle: const Text(
+                    'Réglage global — appui long sur le bouton d’envoi dans une conversation pour un emoji différent',
+                  ),
                   trailing: Text(
                     AppSettings.quickSendEmoji.value,
                     style: const TextStyle(fontSize: 24),
                   ),
                   onTap: () async {
-                    final emoji = await showAdaptiveBottomSheet<String>(
-                      context: context,
-                      builder: (context) => Scaffold(
-                        appBar: AppBar(
-                          title: const Text('Emoji du pouce rapide'),
-                          leading: CloseButton(
-                            onPressed: () => Navigator.of(context).pop(null),
-                          ),
-                        ),
-                        body: SizedBox(
-                          height: double.infinity,
-                          child: EmojiPicker(
-                            onEmojiSelected: (_, emoji) =>
-                                Navigator.of(context).pop(emoji.emoji),
-                            config: Config(
-                              locale: Localizations.localeOf(context),
-                              emojiViewConfig: const EmojiViewConfig(
-                                backgroundColor: Colors.transparent,
-                              ),
-                              bottomActionBarConfig:
-                                  const BottomActionBarConfig(enabled: false),
-                              categoryViewConfig: CategoryViewConfig(
-                                initCategory: Category.RECENT,
-                                backspaceColor: theme.colorScheme.primary,
-                                iconColor: theme.colorScheme.primary.withAlpha(
-                                  128,
-                                ),
-                                iconColorSelected: theme.colorScheme.primary,
-                                indicatorColor: theme.colorScheme.primary,
-                                backgroundColor: theme.colorScheme.surface,
-                              ),
-                              skinToneConfig: SkinToneConfig(
-                                dialogBackgroundColor: Color.lerp(
-                                  theme.colorScheme.surface,
-                                  theme.colorScheme.primaryContainer,
-                                  0.75,
-                                )!,
-                                indicatorColor: theme.colorScheme.onSurface,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                    if (emoji != null) {
+                    final emoji = await showQuickSendEmojiSheet(context);
+                    if (emoji is String) {
                       await AppSettings.quickSendEmoji.setItem(emoji);
                       controller.updateState();
                     }

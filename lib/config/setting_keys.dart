@@ -92,6 +92,10 @@ enum AppSettings<T> {
   /// Fork: emoji envoyé d'un tap quand le champ de saisie est vide ('' = désactivé)
   quickSendEmoji<String>('chat.fluffy.quick_send_emoji', ''),
 
+  /// Fork: override de l'emoji du pouce rapide PAR conversation —
+  /// JSON map {roomId: emoji}, stockage local uniquement (pas d'account data)
+  quickSendEmojiRooms<String>('chat.fluffy.quick_send_emoji_rooms', '{}'),
+
   /// Fork: bulles Android (chat heads) pour les discussions directes
   androidBubbles<bool>('chat.fluffy.android_bubbles', false),
   benchmarksInLogs<bool>('chat.fluffy.benchmarks_in_logs', false),
