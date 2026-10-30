@@ -87,6 +87,13 @@ class MainActivity : FlutterFragmentActivity() {
                     } catch (e: Exception) {
                         result.error("bubble", e.message, null)
                     }
+                } else if (call.method == "ensureBubbleChannel") {
+                    try {
+                        BubbleNotificationHelper.ensureChannel(context)
+                        result.success(null)
+                    } catch (e: Exception) {
+                        result.error("bubble_channel", e.message, null)
+                    }
                 } else if (call.method == "openBubble") {
                     try {
                         openBubble(

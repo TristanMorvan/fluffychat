@@ -195,7 +195,11 @@ object BubbleNotificationHelper {
         if (shortcutId.isEmpty()) return
         try {
             // Intent du shortcut : ouvre l'app (package cible explicite)
-            val intent = Intent(Intent.ACTION_VIEW).setPackage(context.packageName)
+            val intent = Intent(context, MainActivity::class.java).apply {
+                action = Intent.ACTION_VIEW
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra(BubbleActivity.EXTRA_ROOM, shortcutId)
+            }
             // Extras de conversation (motif conversation-shortcuts). Note de
             // review : le vrai canal système (ShortcutInfo.Builder#
             // addLongLivedExtra) est réservé aux apps système (systemapi) —
@@ -257,7 +261,7 @@ object BubbleNotificationHelper {
         }
     }
 
-    private fun ensureChannel(context: Context) {
+    fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = context.getSystemService(NotificationManager::class.java)
         if (manager.getNotificationChannel(CHANNEL_ID) != null) return
@@ -266,7 +270,7 @@ object BubbleNotificationHelper {
             "Bulles de discussion",
             NotificationManager.IMPORTANCE_HIGH,
         ).apply {
-            setAllowBubbles(true)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) setAllowBubbles(true)
             lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
         }
         manager.createNotificationChannel(channel)

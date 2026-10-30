@@ -4,21 +4,19 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:fluffychat/config/app_config.dart';
-import 'package:fluffychat/config/setting_keys.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/chat_details/chat_details.dart';
 import 'package:fluffychat/pages/chat_details/participant_list_item.dart';
 import 'package:fluffychat/pages/settings/settings.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
-import 'package:fluffychat/utils/push_helper.dart';
+import 'package:fluffychat/utils/conversation_bubble.dart';
 import 'package:fluffychat/utils/verified_room_extension.dart';
 import 'package:fluffychat/widgets/avatar.dart';
 import 'package:fluffychat/widgets/chat_settings_popup_menu.dart';
 import 'package:fluffychat/widgets/future_loading_dialog.dart';
 import 'package:fluffychat/widgets/layouts/max_width_body.dart';
 import 'package:fluffychat/widgets/matrix.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -309,75 +307,10 @@ class ChatDetailsView extends StatelessWidget {
                               // Fork: déclencheur manuel de la bulle (les
                               // bulles ne se déclenchent sinon que depuis
                               // une notification).
-                              if (PlatformInfos.isAndroid &&
-                                  AppSettings.androidBubbles.value &&
-                                  room.isDirectChat)
+                              if (canOpenConversationBubble(room))
                                 _MainChatDetailsButton(
-                                  onPressed: () async {
-                                    final l10n = L10n.of(context);
-                                    try {
-                                      await const MethodChannel(
-                                        'chat.fluffy/bubbles',
-                                      ).invokeMethod<void>('openBubble', {
-                                        'roomId': room.id,
-                                        'title': room.getLocalizedDisplayname(
-                                          MatrixLocals(l10n),
-                                        ),
-                                        'payload': FluffyChatPushPayload(
-                                          room.client.clientName,
-                                          room.id,
-                                          null,
-                                        ).toString(),
-                                      });
-                                      if (!context.mounted) return;
-                                      // Android 11+ : la toute première
-                                      // bulle d'une conversation ne peut
-                                      // pas s'ouvrir seule — conseiller
-                                      // le tap sur le cercle.
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            L10n.of(
-                                              context,
-                                            ).bubbleOpenedHint,
-                                          ),
-                                        ),
-                                      );
-                                    } on PlatformException catch (e) {
-                                      if (!context.mounted) return;
-                                      // Fork M5 : bulles non autorisees ->
-                                      // on propose d'ouvrir directement la
-                                      // page systeme concernee.
-                                      final notAllowed =
-                                          e.code == 'bubbles_not_allowed';
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          duration: const Duration(
-                                            seconds: 8,
-                                          ),
-                                          content: Text(
-                                            notAllowed
-                                            ? l10n
-                                                .bubblesNotAllowedInSettings
-                                            : l10n.openBubbleFailed,
-                                          ),
-                                          action: notAllowed
-                                              ? SnackBarAction(
-                                                  label:
-                                                      l10n.openSystemSettings,
-                                                  onPressed: () => const MethodChannel(
-                                                    'chat.fluffy/bubbles',
-                                                  ).invokeMethod<void>(
-                                                    'openNotificationSettings',
-                                                  ),
-                                                )
-                                              : null,
-                                        ),
-                                      );
-                                    }
-                                  },
+                                  onPressed: () =>
+                                      openConversationBubble(context, room),
                                   label: L10n.of(
                                     context,
                                   ).openBubbleConversation,

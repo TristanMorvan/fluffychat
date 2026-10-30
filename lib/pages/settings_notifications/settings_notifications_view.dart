@@ -88,6 +88,13 @@ class SettingsNotificationsView extends StatelessWidget {
                       // d'ouvrir la page systeme pour autoriser les
                       // bulles (pas de detection canBubble, API @hide).
                       onChanged: (enabled) {
+                        if (enabled) {
+                          // Créer le canal dès l'activation : il apparaît dans
+                          // les réglages One UI avant le prochain push.
+                          const MethodChannel(
+                            'chat.fluffy/bubbles',
+                          ).invokeMethod<void>('ensureBubbleChannel');
+                        }
                         if (!enabled) return;
                         final l10n = L10n.of(context);
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -98,9 +105,7 @@ class SettingsNotificationsView extends StatelessWidget {
                               label: l10n.openSystemSettings,
                               onPressed: () => const MethodChannel(
                                 'chat.fluffy/bubbles',
-                              ).invokeMethod<void>(
-                                'openNotificationSettings',
-                              ),
+                              ).invokeMethod<void>('openNotificationSettings'),
                             ),
                           ),
                         );

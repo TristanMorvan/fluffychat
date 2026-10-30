@@ -6,6 +6,7 @@
 import 'dart:async';
 
 import 'package:fluffychat/l10n/l10n.dart';
+import 'package:fluffychat/utils/conversation_bubble.dart';
 import 'package:fluffychat/widgets/adaptive_dialogs/show_ok_cancel_alert_dialog.dart';
 import 'package:fluffychat/widgets/future_loading_dialog.dart';
 import 'package:go_router/go_router.dart';
@@ -14,7 +15,7 @@ import 'package:matrix/matrix.dart';
 
 import 'matrix.dart';
 
-enum ChatPopupMenuActions { details, encryption, leave, search }
+enum ChatPopupMenuActions { details, bubble, encryption, leave, search }
 
 class ChatSettingsPopupMenu extends StatefulWidget {
   final Room room;
@@ -79,6 +80,9 @@ class ChatSettingsPopupMenuState extends State<ChatSettingsPopupMenu> {
               case ChatPopupMenuActions.details:
                 _showChatDetails();
                 break;
+              case ChatPopupMenuActions.bubble:
+                await openConversationBubble(context, widget.room);
+                break;
               case ChatPopupMenuActions.search:
                 context.go('/rooms/${widget.room.id}/search');
                 break;
@@ -96,6 +100,19 @@ class ChatSettingsPopupMenuState extends State<ChatSettingsPopupMenu> {
                     const Icon(Icons.info_outline_rounded),
                     const SizedBox(width: 12),
                     Text(L10n.of(context).chatDetails),
+                  ],
+                ),
+              ),
+            // Dans fork.7 l'action n'existait que sur la page « Détails » :
+            // le menu à trois points de la conversation ne pouvait pas l'afficher.
+            if (canOpenConversationBubble(widget.room))
+              PopupMenuItem<ChatPopupMenuActions>(
+                value: ChatPopupMenuActions.bubble,
+                child: Row(
+                  children: [
+                    const Icon(Icons.bubble_chart_outlined),
+                    const SizedBox(width: 12),
+                    Text(L10n.of(context).openBubbleConversation),
                   ],
                 ),
               ),
