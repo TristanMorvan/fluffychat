@@ -209,9 +209,11 @@ Future<void> _tryPushHelper(
 
   // The person object for the android message style notification
   final avatar = event.room.avatar;
-  final senderAvatar = event.room.isDirectChat
-      ? avatar
-      : event.senderFromMemoryOrFallback.avatarUrl;
+  // A DM room's avatar can be unset even when the sender has a profile photo.
+  // Resolve the sender first; keep the room avatar as a fallback for rooms
+  // whose peer membership has not reached the local cache yet.
+  final senderAvatar = event.senderFromMemoryOrFallback.avatarUrl ??
+      (event.room.isDirectChat ? avatar : null);
 
   final ownUser = event.room.unsafeGetUserFromMemoryOrFallback(client.userID!);
 

@@ -7,7 +7,11 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.os.Build
 import android.os.PersistableBundle
 import android.util.Log
@@ -98,8 +102,13 @@ object BubbleNotificationHelper {
         autoExpand: Boolean = false,
     ) {
         ensureChannel(context)
-        val avatarBitmap =
+        val downloadedAvatar =
             avatarBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+        // Never replace a person's icon with the app launcher. An absent,
+        // timed-out or undecodable MXC gets a stable initials avatar instead;
+        // the next push replaces the dynamic shortcut with the real bitmap.
+        val avatarBitmap = downloadedAvatar ?: initialsAvatar(sender ?: title, shortcutId)
+        Log.i("BubbleHelper", "avatar shortcut=$shortcutId source=${if (downloadedAvatar != null) "mxc" else "initials"} bytes=${avatarBytes?.size ?: 0}")
         // Fork M6 : contenu de la bulle = BubbleActivity (allowEmbedded +
         // documentLaunchMode=always, voir manifest) ; MainActivity ne peut
         // pas servir de contenu de bulle.
@@ -126,7 +135,7 @@ object BubbleNotificationHelper {
         ensureBubbleShortcut(context, shortcutId, title, avatarBitmap)
 
         val senderPerson = Person.Builder().setName(sender ?: title).apply {
-            avatarBitmap?.let { setIcon(IconCompat.createWithBitmap(it)) }
+            setIcon(IconCompat.createWithBitmap(avatarBitmap))
         }.build()
 
         // Fork M6 : fil cumule dans la notif de bulle (historique par piece)
@@ -141,7 +150,7 @@ object BubbleNotificationHelper {
                 val person =
                     if (hSender == null) senderPerson else
                         Person.Builder().setName(hSender).apply {
-                            avatarBitmap?.let { setIcon(IconCompat.createWithBitmap(it)) }
+                            setIcon(IconCompat.createWithBitmap(avatarBitmap))
                         }.build()
                 style.addMessage(hText, System.currentTimeMillis(), person)
             }
@@ -167,8 +176,7 @@ object BubbleNotificationHelper {
         builder.setBubbleMetadata(
             NotificationCompat.BubbleMetadata.Builder(
                 contentIntent,
-                avatarBitmap?.let { IconCompat.createWithBitmap(it) }
-                    ?: IconCompat.createWithResource(context, R.mipmap.ic_launcher),
+                IconCompat.createWithBitmap(avatarBitmap),
             )
                 .setDesiredHeight(420)
                 .setAutoExpandBubble(autoExpand)
@@ -192,7 +200,7 @@ object BubbleNotificationHelper {
         context: Context,
         shortcutId: String,
         title: String,
-        avatarBitmap: android.graphics.Bitmap?,
+        avatarBitmap: Bitmap,
     ) {
         if (shortcutId.isEmpty()) return
         try {
@@ -213,12 +221,7 @@ object BubbleNotificationHelper {
                 putBoolean(EXTRA_BUBBLE_SHORTCUT, true)
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                val icon = avatarBitmap?.let {
-                    android.graphics.drawable.Icon.createWithBitmap(it)
-                } ?: android.graphics.drawable.Icon.createWithResource(
-                    context,
-                    R.mipmap.ic_launcher,
-                )
+                val icon = android.graphics.drawable.Icon.createWithBitmap(avatarBitmap)
                 val shortcut = ShortcutInfo.Builder(context, shortcutId)
                     .setShortLabel(title)
                     .setIntent(intent)
@@ -227,6 +230,7 @@ object BubbleNotificationHelper {
                         android.app.Person.Builder()
                             .setName(title)
                             .setKey(shortcutId)
+                            .setIcon(icon)
                             .setImportant(true)
                             .build(),
                     )
@@ -241,11 +245,11 @@ object BubbleNotificationHelper {
                     .setShortLabel(title)
                     .setIntent(intent)
                     .setIcon(
-                        avatarBitmap?.let { IconCompat.createWithBitmap(it) }
-                            ?: IconCompat.createWithResource(context, R.mipmap.ic_launcher),
+                        IconCompat.createWithBitmap(avatarBitmap),
                     )
                     .setPerson(
                         Person.Builder().setName(title).setKey(shortcutId)
+                            .setIcon(IconCompat.createWithBitmap(avatarBitmap))
                             .setImportant(true).build(),
                     )
                     // même valeur que ShortcutInfo.SHORTCUT_CATEGORY_CONVERSATION
@@ -261,6 +265,26 @@ object BubbleNotificationHelper {
             // classique reste émise, on ne casse pas le flux de notification
             Log.w("BubbleHelper", "ensureBubbleShortcut($shortcutId) failed", e)
         }
+    }
+
+    private fun initialsAvatar(name: String, key: String): Bitmap {
+        val size = 128
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val colors = intArrayOf(0xff465a83.toInt(), 0xff75548a.toInt(),
+            0xff327d7a.toInt(), 0xffa05b4b.toInt(), 0xff586f3b.toInt())
+        paint.color = colors[(key.hashCode().toLong().and(0x7fffffffL) % colors.size).toInt()]
+        canvas.drawCircle(64f, 64f, 64f, paint)
+        val initials = name.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+            .take(2).joinToString("") { it.take(1).uppercase() }.ifEmpty { "?" }
+        paint.color = Color.WHITE
+        paint.textAlign = Paint.Align.CENTER
+        paint.textSize = if (initials.length > 1) 53f else 69f
+        paint.typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD)
+        val baseline = 64f - (paint.ascent() + paint.descent()) / 2
+        canvas.drawText(initials, 64f, baseline, paint)
+        return bitmap
     }
 
     fun ensureChannel(context: Context) {
