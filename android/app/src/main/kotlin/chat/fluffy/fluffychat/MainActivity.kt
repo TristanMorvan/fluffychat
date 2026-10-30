@@ -87,6 +87,25 @@ class MainActivity : FlutterFragmentActivity() {
                     } catch (e: Exception) {
                         result.error("bubble", e.message, null)
                     }
+                } else if (call.method == "clearNonBubbleNotifications") {
+                    // A receipt clears the unread count on opening a bubble.
+                    // cancelAll would also remove the notification anchoring
+                    // the live bubble, immediately closing its TaskView.
+                    val manager = context.getSystemService(NotificationManager::class.java)
+                    for (item in manager.activeNotifications) {
+                        if (item.notification.flags and android.app.Notification.FLAG_BUBBLE == 0) {
+                            manager.cancel(item.tag, item.id)
+                        }
+                    }
+                    result.success(null)
+                } else if (call.method == "cancelNotificationUnlessBubble") {
+                    val id = call.argument<Int>("id") ?: 0
+                    val manager = context.getSystemService(NotificationManager::class.java)
+                    val item = manager.activeNotifications.firstOrNull { it.id == id }
+                    if (item != null && item.notification.flags and android.app.Notification.FLAG_BUBBLE == 0) {
+                        manager.cancel(item.tag, id)
+                    }
+                    result.success(null)
                 } else if (call.method == "ensureBubbleChannel") {
                     try {
                         BubbleNotificationHelper.ensureChannel(context)

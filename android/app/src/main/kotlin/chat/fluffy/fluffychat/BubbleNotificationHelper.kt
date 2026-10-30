@@ -69,9 +69,6 @@ object BubbleNotificationHelper {
     // son travail ; on la retire et on purge l'historique.
     fun onBubbleOpened(context: Context, roomId: String) {
         history.remove(roomId)
-        NotificationManagerCompat.from(context).cancel(
-            (roomId.hashCode() and 0x7FFF0000) or 0x42,
-        )
     }
 
     fun sendTapToFlutter(engine: FlutterEngine?, payload: String, id: Int): Boolean {
@@ -115,7 +112,12 @@ object BubbleNotificationHelper {
                 putExtra(BubbleTapReceiver.EXTRA_PAYLOAD, payload)
                 putExtra(BubbleTapReceiver.EXTRA_NOTIFICATION_ID, id)
             },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            // Android 12+ refuses a bubble notification when its content
+            // PendingIntent is immutable (NotificationService: Not posted).
+            // Explicit BubbleActivity intent keeps the mutable PI targeted.
+            PendingIntent.FLAG_UPDATE_CURRENT or
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                    PendingIntent.FLAG_MUTABLE else 0,
         )
 
         // Fork: le shortcut de conversation DOIT être publié (pushDynamicShortcut)
@@ -155,7 +157,7 @@ object BubbleNotificationHelper {
             .setStyle(style)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setContentIntent(contentIntent)
-            .setAutoCancel(true)
+            .setAutoCancel(false)
             .setOnlyAlertOnce(true)
             // bulle = contenu de conversation : visible sur écran verrouillé
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)

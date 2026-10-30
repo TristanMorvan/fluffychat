@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.KeyEvent
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.embedding.engine.dart.DartExecutor.DartEntrypoint
 import io.flutter.plugin.common.MethodChannel
 
 /**
@@ -23,8 +24,16 @@ import io.flutter.plugin.common.MethodChannel
  */
 class BubbleActivity : FlutterActivity() {
 
+    // Le moteur de MainActivity partage entre deux FlutterViews plante le
+    // raster thread dans la TaskView Android 15 (tombstone testphone).
+    private var bubbleEngine: FlutterEngine? = null
+
     override fun provideFlutterEngine(context: android.content.Context): FlutterEngine =
-        MainActivity.provideRunningEngine(context)
+        FlutterEngine(context.applicationContext).also { engine ->
+            bubbleEngine = engine
+            MainActivity.registerBubbleChannel(engine, context.applicationContext)
+            engine.dartExecutor.executeDartEntrypoint(DartEntrypoint.createDefault())
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         intent?.getStringExtra(EXTRA_ROOM)?.takeIf { it.isNotEmpty() }?.let {
@@ -41,7 +50,7 @@ class BubbleActivity : FlutterActivity() {
         // getPendingBubbleRoom a son demarrage.
         MainActivity.pendingBubbleRoomId?.let { room ->
             try {
-                MainActivity.engine?.let { eng ->
+                bubbleEngine?.let { eng ->
                     MethodChannel(
                         eng.dartExecutor.binaryMessenger,
                         MainActivity.BUBBLE_CHANNEL,
@@ -60,6 +69,8 @@ class BubbleActivity : FlutterActivity() {
     override fun onDestroy() {
         MainActivity.pendingBubbleRoomId = null
         super.onDestroy()
+        bubbleEngine?.destroy()
+        bubbleEngine = null
     }
 
     // Retour arriere = replier la bulle (finish), pas fermer l'app.

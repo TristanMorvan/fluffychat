@@ -148,7 +148,12 @@ Future<void> _tryPushHelper(
     Logs().v('Notification is a clearing indicator.');
     if (client.syncPending) return;
     if (clients?.length == 1 && (notification.counts?.unread == 0)) {
-      await flutterLocalNotificationsPlugin.cancelAll();
+      if (PlatformInfos.isAndroid && AppSettings.androidBubbles.value) {
+        await const MethodChannel('chat.fluffy/bubbles')
+            .invokeMethod<void>('clearNonBubbleNotifications');
+      } else {
+        await flutterLocalNotificationsPlugin.cancelAll();
+      }
     } else {
       // Make sure client is fully loaded and synced before dismiss notifications:
       await client.roomsLoading;
@@ -656,7 +661,12 @@ Future<void> cancelNotificationsOnSync(
       continue;
     }
     final id = '${clientName}_$roomId'.hashCode;
-    await flutterLocalNotificationsPlugin.cancel(id: id);
+    if (PlatformInfos.isAndroid && AppSettings.androidBubbles.value) {
+      await const MethodChannel('chat.fluffy/bubbles')
+          .invokeMethod<void>('cancelNotificationUnlessBubble', {'id': id});
+    } else {
+      await flutterLocalNotificationsPlugin.cancel(id: id);
+    }
   }
 
   if (PlatformInfos.isAndroid) {
