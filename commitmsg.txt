@@ -1,0 +1,15 @@
+feat(fork) fork.4 : item Ouvrir la bulle de conversation (openBubble) + versionCode 3578
+
+- page details DM : bouton Ouvrir la bulle (visible si Android +
+  AppSettings.androidBubbles + DM) -> methode openBubble du canal
+  chat.fluffy/bubbles
+- openBubble (Kotlin) : garde areBubblesAllowed (sinon ouverture
+  classique + erreur bubbles_not_allowed affichee en snackbar), sinon
+  publication du raccourci de conversation puis notif bulle
+  autoExpand=true
+- deviation carte : android:allowBubbles et
+  ActivityOptions#setLaunchIntoBubbles sont caches (absents d'android.jar
+  37.2 et de R.attr) -> voie publique = BubbleMetadata autoExpand
+- l10n en+fr uniquement (openBubbleConversation, openBubbleFailed,
+  bubblesNotAllowedInSettings, bubbleOpenedHint)
+- versionCode 3577 -> 3578

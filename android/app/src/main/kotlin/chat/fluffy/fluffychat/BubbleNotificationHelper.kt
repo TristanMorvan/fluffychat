@@ -79,6 +79,11 @@ object BubbleNotificationHelper {
         groupKey: String?,
         payload: String,
         avatarBytes: ByteArray?,
+        // Fork: autoExpand=true pour l'ouverture manuelle (« Ouvrir la
+        // bulle ») ; le système n'auto-ouvre que si les bulles sont
+        // autorisées et la conversation déjà bubblée une fois (restriction
+        // Android 11+ : la première bulle exige un tap sur le cercle).
+        autoExpand: Boolean = false,
     ) {
         ensureChannel(context)
         val avatarBitmap =
@@ -132,7 +137,7 @@ object BubbleNotificationHelper {
                     ?: IconCompat.createWithResource(context, R.mipmap.ic_launcher),
             )
                 .setDesiredHeight(600)
-                .setAutoExpandBubble(false)
+                .setAutoExpandBubble(autoExpand)
                 .setSuppressNotification(false)
                 .build(),
         )
@@ -149,7 +154,7 @@ object BubbleNotificationHelper {
      * - extras STRATEGY / BUBBLE_SHORTCUT : motif conversation-shortcuts.
      * - package cible explicite sur l'intent.
      */
-    private fun ensureBubbleShortcut(
+    internal fun ensureBubbleShortcut(
         context: Context,
         shortcutId: String,
         title: String,

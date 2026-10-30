@@ -2,6 +2,11 @@
 <!-- Fork flavor titucle : nom du launcher propre (manifest overlay, main intact) -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+    <!-- Fork: android:allowBubbles et ActivityOptions#setLaunchIntoBubbles
+         sont @hide (absents d'android.jar et de R.attr, vérifié SDK 37.2) —
+         non déclarables par une app tierce. Le déclencheur manuel « Ouvrir
+         la bulle » passe donc par une notification à BubbleMetadata
+         autoExpand (voie publique, celle de Messenger). -->
     <application
         android:label="TitucleChat"
         tools:replace="android:label" />

@@ -8,6 +8,8 @@ import io.flutter.plugin.common.MethodChannel
 
 import android.content.Context
 import android.content.Intent
+import android.app.NotificationManager
+import android.os.Build
 import android.os.Bundle
 
 class MainActivity : FlutterFragmentActivity() {
@@ -78,6 +80,18 @@ class MainActivity : FlutterFragmentActivity() {
                     } catch (e: Exception) {
                         result.error("bubble", e.message, null)
                     }
+                } else if (call.method == "openBubble") {
+                    try {
+                        openBubble(
+                            context,
+                            call.argument<String>("roomId") ?: "",
+                            call.argument<String>("title") ?: "",
+                            call.argument<String>("payload") ?: "",
+                            result,
+                        )
+                    } catch (e: Exception) {
+                        result.error("bubble", e.message, null)
+                    }
                 } else {
                     result.notImplemented()
                 }
@@ -105,5 +119,60 @@ class MainActivity : FlutterFragmentActivity() {
             }
             return eng
         }
+
+    // Fork: ouverture d'une bulle à la demande (item « Ouvrir la bulle »
+    // de la page détails). La voie publique setLaunchIntoBubbles +
+    // android:allowBubbles est @hide (vérifié android.jar 37.2) : on poste
+    // donc une notification de bulle avec autoExpand=true (mécanisme de
+    // Messenger). Le raccourci de conversation est publié d'abord pour que
+    // la bulle soit rattachée à la bonne pièce. Repli honnête : si les
+    // bulles ne sont pas autorisées, on ouvre la conversation normalement
+    // et on remonte « bubbles_not_allowed » pour que Dart affiche le
+    // message. Succès ne garantit pas l'auto-ouverture : restriction
+    // Android 11+, la toute première bulle d'une conversation exige un tap
+    // sur le cercle de la notification — Dart affiche un conseil.
+    private fun openBubble(
+        context: Context,
+        roomId: String,
+        title: String,
+        payload: String,
+        result: MethodChannel.Result,
+    ) {
+        if (roomId.isEmpty()) {
+            result.error("bad_args", "roomId is required", null)
+            return
+        }
+        val bubblesAllowed = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+            context.getSystemService(NotificationManager::class.java)
+                .areBubblesAllowed()
+        if (!bubblesAllowed) {
+            val intent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra(BubbleTapReceiver.EXTRA_PAYLOAD, payload)
+            }
+            context.startActivity(intent)
+            result.error(
+                "bubbles_not_allowed",
+                "Bubbles are not allowed for this app in system settings",
+                null,
+            )
+            return
+        }
+        BubbleNotificationHelper.showBubble(
+            context,
+            // id stable par pièce : l'ouverture manuelle remplace sa propre
+            // notif au lieu d'empiler
+            (roomId.hashCode() and 0x7FFF0000) or 0x42,
+            title,
+            title,
+            null,
+            roomId,
+            null,
+            payload,
+            null,
+            autoExpand = true,
+        )
+        result.success(null)
+    }
     }
 }

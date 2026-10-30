@@ -1508,6 +1508,26 @@
         "type": "String",
         "placeholders": {}
     },
+    "openBubbleConversation": "Ouvrir la bulle de conversation",
+    "@openBubbleConversation": {
+        "type": "String",
+        "placeholders": {}
+    },
+    "openBubbleFailed": "Impossible d'ouvrir la bulle.",
+    "@openBubbleFailed": {
+        "type": "String",
+        "placeholders": {}
+    },
+    "bubbleOpenedHint": "Si la bulle ne s'ouvre pas, touchez le cercle sur la notification (requis pour la première bulle d'une conversation).",
+    "@bubbleOpenedHint": {
+        "type": "String",
+        "placeholders": {}
+    },
+    "bubblesNotAllowedInSettings": "Les bulles ne sont pas autorisées. Activez-les dans les réglages système (Applications > TitucleChat > Notifications > Bulles).",
+    "@bubblesNotAllowedInSettings": {
+        "type": "String",
+        "placeholders": {}
+    },
     "unpin": "Désépingler",
     "@unpin": {
         "type": "String",

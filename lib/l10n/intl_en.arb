@@ -1738,6 +1738,26 @@
         "type": "String",
         "placeholders": {}
     },
+    "openBubbleConversation": "Open conversation bubble",
+    "@openBubbleConversation": {
+        "type": "String",
+        "placeholders": {}
+    },
+    "openBubbleFailed": "Could not open the bubble.",
+    "@openBubbleFailed": {
+        "type": "String",
+        "placeholders": {}
+    },
+    "bubbleOpenedHint": "If the bubble does not open, tap the circle on the notification (required for the first bubble of a conversation).",
+    "@bubbleOpenedHint": {
+        "type": "String",
+        "placeholders": {}
+    },
+    "bubblesNotAllowedInSettings": "Bubbles are not allowed. Enable them in the system settings (Apps > TitucleChat > Notifications > Bubbles).",
+    "@bubblesNotAllowedInSettings": {
+        "type": "String",
+        "placeholders": {}
+    },
     "unpin": "Unpin",
     "@unpin": {
         "type": "String",
