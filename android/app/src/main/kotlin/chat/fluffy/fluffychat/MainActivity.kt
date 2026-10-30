@@ -59,6 +59,10 @@ class MainActivity : FlutterFragmentActivity() {
         const val BUBBLE_CHANNEL = "chat.fluffy/bubbles"
         var engine: FlutterEngine? = null
 
+        // Fork M6 : piece a buller en attente (cas app morte -> ouverture
+        // par la bulle : Dart la reclamera via getPendingBubbleRoom)
+        var pendingBubbleRoomId: String? = null
+
         // Fork: le moteur étant créé à la main (provideEngine), configureFlutterEngine
         // n'est pas toujours appelé — on enregistre le canal natif dès la création.
         fun registerBubbleChannel(flutterEngine: FlutterEngine, context: Context) {
@@ -95,6 +99,9 @@ class MainActivity : FlutterFragmentActivity() {
                     } catch (e: Exception) {
                         result.error("bubble", e.message, null)
                     }
+                } else if (call.method == "getPendingBubbleRoom") {
+                    // Fork M6 : Dart demande la piece en attente au demarrage
+                    result.success(pendingBubbleRoomId)
                 } else if (call.method == "openNotificationSettings") {
                     try {
                         openNotificationSettings(context)

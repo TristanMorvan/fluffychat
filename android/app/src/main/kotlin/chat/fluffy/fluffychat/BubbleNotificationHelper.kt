@@ -59,6 +59,21 @@ object BubbleNotificationHelper {
         "android.app.shortcut.strategy.CHOOSE_CONVERSATION"
     private const val EXTRA_BUBBLE_SHORTCUT = "bubbles.shortcut"
 
+    // Fork M6 : historique leger par piece (sender, texte) pour reconstruire
+    // un fil dans la notif de bulle (getActiveNotificationMessagingStyle est
+    // vide quand la notif est bullee). Purge quand la bulle s'ouvre.
+    private val history =
+        java.util.concurrent.ConcurrentHashMap<String, MutableList<Pair<String?, String>>>()
+
+    // Fork M6 : la bulle s'ouvre (tap cercle / autoExpand) -> la notif a fait
+    // son travail ; on la retire et on purge l'historique.
+    fun onBubbleOpened(context: Context, roomId: String) {
+        history.remove(roomId)
+        NotificationManagerCompat.from(context).cancel(
+            (roomId.hashCode() and 0x7FFF0000) or 0x42,
+        )
+    }
+
     fun sendTapToFlutter(engine: FlutterEngine?, payload: String, id: Int): Boolean {
         val messenger = engine?.dartExecutor?.binaryMessenger ?: return false
         BasicMessageChannel(
@@ -88,11 +103,15 @@ object BubbleNotificationHelper {
         ensureChannel(context)
         val avatarBitmap =
             avatarBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+        // Fork M6 : contenu de la bulle = BubbleActivity (allowEmbedded +
+        // documentLaunchMode=always, voir manifest) ; MainActivity ne peut
+        // pas servir de contenu de bulle.
         val contentIntent = PendingIntent.getActivity(
             context,
             id,
-            Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            Intent(context, BubbleActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK
+                putExtra(BubbleActivity.EXTRA_ROOM, shortcutId)
                 putExtra(BubbleTapReceiver.EXTRA_PAYLOAD, payload)
                 putExtra(BubbleTapReceiver.EXTRA_NOTIFICATION_ID, id)
             },
@@ -108,10 +127,23 @@ object BubbleNotificationHelper {
             avatarBitmap?.let { setIcon(IconCompat.createWithBitmap(it)) }
         }.build()
 
+        // Fork M6 : fil cumule dans la notif de bulle (historique par piece)
         val style = NotificationCompat.MessagingStyle(
             Person.Builder().setName("Vous").build(),
         )
-        style.addMessage(text, System.currentTimeMillis(), senderPerson)
+        val hist = history.getOrPut(shortcutId) { mutableListOf() }
+        synchronized(hist) {
+            hist.add(Pair(sender, text))
+            while (hist.size > 30) hist.removeAt(0)
+            for ((hSender, hText) in hist) {
+                val person =
+                    if (hSender == null) senderPerson else
+                        Person.Builder().setName(hSender).apply {
+                            avatarBitmap?.let { setIcon(IconCompat.createWithBitmap(it)) }
+                        }.build()
+                style.addMessage(hText, System.currentTimeMillis(), person)
+            }
+        }
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             // Fork: pastille = icône propre au fork (overlay titucle = T
@@ -136,7 +168,7 @@ object BubbleNotificationHelper {
                 avatarBitmap?.let { IconCompat.createWithBitmap(it) }
                     ?: IconCompat.createWithResource(context, R.mipmap.ic_launcher),
             )
-                .setDesiredHeight(600)
+                .setDesiredHeight(420)
                 .setAutoExpandBubble(autoExpand)
                 .setSuppressNotification(false)
                 .build(),

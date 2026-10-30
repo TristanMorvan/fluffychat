@@ -15,6 +15,7 @@ import 'package:fluffychat/widgets/app_lock.dart';
 import 'package:fluffychat/widgets/layouts/call_overlay.dart';
 import 'package:fluffychat/widgets/theme_builder.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:matrix/matrix.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -42,6 +43,33 @@ class FluffyChatApp extends StatelessWidget {
   /// opened multiple times for example if the user logs out after they logged
   /// in with qr code or magic link.
   static bool gotInitialLink = false;
+
+  // Fork M6 : pont avec BubbleActivity (bulle flottante Android). Le natif
+  // envoie la piece a afficher ; on empile la route conversation, qui sert
+  // de contenu a la bulle (fenetre redimensionnee par le systeme).
+  static const MethodChannel _bubbleChannel = MethodChannel('chat.fluffy/bubbles');
+
+  static Future<void> initBubbleBridge() async {
+    _bubbleChannel.setMethodCallHandler((call) async {
+      if (call.method == 'onBubbleRoom') {
+        final room = call.arguments as String?;
+        if (room != null && room.isNotEmpty) _openBubbleRoom(room);
+      }
+    });
+    try {
+      final pending =
+          await _bubbleChannel.invokeMethod<String>('getPendingBubbleRoom');
+      if (pending != null && pending.isNotEmpty) _openBubbleRoom(pending);
+    } catch (_) {}
+  }
+
+  static void _openBubbleRoom(String roomId) {
+    try {
+      router.push('/rooms/${Uri.encodeComponent(roomId)}');
+    } catch (e) {
+      Logs().w('Bubble room navigation failed', e);
+    }
+  }
 
   // Router must be outside of build method so that hot reload does not reset
   // the current path.

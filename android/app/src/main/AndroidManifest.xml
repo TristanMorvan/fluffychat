@@ -44,6 +44,22 @@
             </intent-filter>
         </receiver>
 
+        <!-- Fork M6 : contenu de la bulle flottante. allowEmbedded +
+             documentLaunchMode=always + resizeableActivity = conditions
+             systeme pour qu'une activite puisse vivre dans une bulle. -->
+        <activity
+            android:name=".BubbleActivity"
+            android:allowEmbedded="true"
+            android:documentLaunchMode="always"
+            android:resizeableActivity="true"
+            android:excludeFromRecents="true"
+            android:noHistory="false"
+            android:exported="false"
+            android:theme="@style/BubbleTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".MainActivity"
             android:launchMode="singleTask"

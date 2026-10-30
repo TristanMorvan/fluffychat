@@ -142,6 +142,9 @@ Future<void> startGui(List<Client> clients, SharedPreferences store) async {
   await firstClient?.roomsLoading;
   await firstClient?.accountDataLoading;
 
+  // Fork M6 : pont bulle flottante (BubbleActivity <-> Dart)
+  FluffyChatApp.initBubbleBridge();
+
   runApp(
     FluffyChatApp(
       clients: clients,

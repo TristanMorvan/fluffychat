@@ -365,6 +365,8 @@ Future<void> _tryPushHelper(
 
   // Fork: bulles Android — remplace la notif classique pour les DM (canal allowBubbles natif)
   // Fork: message mono-emoji ⇒ pas de bulle (comme Messenger), notif classique.
+  // Fork M6 : plus de condition messagingStyleInformation == null (elle
+  // limitait la notif a bulle au premier message seulement).
   if (PlatformInfos.isAndroid &&
       AppSettings.androidBubbles.value &&
       event.room.isDirectChat &&
