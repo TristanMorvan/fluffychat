@@ -346,15 +346,34 @@ class ChatDetailsView extends StatelessWidget {
                                       );
                                     } on PlatformException catch (e) {
                                       if (!context.mounted) return;
+                                      // Fork M5 : bulles non autorisees ->
+                                      // on propose d'ouvrir directement la
+                                      // page systeme concernee.
+                                      final notAllowed =
+                                          e.code == 'bubbles_not_allowed';
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
                                         SnackBar(
+                                          duration: const Duration(
+                                            seconds: 8,
+                                          ),
                                           content: Text(
-                                            e.code == 'bubbles_not_allowed'
+                                            notAllowed
                                             ? l10n
                                                 .bubblesNotAllowedInSettings
                                             : l10n.openBubbleFailed,
                                           ),
+                                          action: notAllowed
+                                              ? SnackBarAction(
+                                                  label:
+                                                      l10n.openSystemSettings,
+                                                  onPressed: () => const MethodChannel(
+                                                    'chat.fluffy/bubbles',
+                                                  ).invokeMethod<void>(
+                                                    'openNotificationSettings',
+                                                  ),
+                                                )
+                                              : null,
                                         ),
                                       );
                                     }

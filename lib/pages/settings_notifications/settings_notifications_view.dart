@@ -13,6 +13,7 @@ import 'package:fluffychat/utils/push_helper.dart';
 import 'package:fluffychat/widgets/layouts/max_width_body.dart';
 import 'package:fluffychat/widgets/settings_switch_list_tile.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:matrix/matrix.dart';
 import 'package:unifiedpush/unifiedpush.dart';
@@ -83,6 +84,27 @@ class SettingsNotificationsView extends StatelessWidget {
                           'Affiche les messages directs en bulles flottantes (chat heads). '
                           "Nécessite d'autoriser les bulles pour l'application dans les réglages Android.",
                       setting: AppSettings.androidBubbles,
+                      // Fork M5 : des que le switch passe ON, proposer
+                      // d'ouvrir la page systeme pour autoriser les
+                      // bulles (pas de detection canBubble, API @hide).
+                      onChanged: (enabled) {
+                        if (!enabled) return;
+                        final l10n = L10n.of(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            duration: const Duration(seconds: 8),
+                            content: Text(l10n.bubblesEnableSystemHint),
+                            action: SnackBarAction(
+                              label: l10n.openSystemSettings,
+                              onPressed: () => const MethodChannel(
+                                'chat.fluffy/bubbles',
+                              ).invokeMethod<void>(
+                                'openNotificationSettings',
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   if (pushRules != null)
                     for (final category in pushCategories) ...[

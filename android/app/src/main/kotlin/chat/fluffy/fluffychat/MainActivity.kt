@@ -6,11 +6,14 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.dart.DartExecutor.DartEntrypoint
 import io.flutter.plugin.common.MethodChannel
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.app.NotificationManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 
 class MainActivity : FlutterFragmentActivity() {
 
@@ -91,6 +94,13 @@ class MainActivity : FlutterFragmentActivity() {
                         )
                     } catch (e: Exception) {
                         result.error("bubble", e.message, null)
+                    }
+                } else if (call.method == "openNotificationSettings") {
+                    try {
+                        openNotificationSettings(context)
+                        result.success(null)
+                    } catch (e: Exception) {
+                        result.error("settings", e.message, null)
                     }
                 } else {
                     result.notImplemented()
@@ -173,6 +183,33 @@ class MainActivity : FlutterFragmentActivity() {
             autoExpand = true,
         )
         result.success(null)
+    }
+
+    // Fork M5 : deep link vers la page systeme des notifications de
+    // l'app (la ou Android/Samsung autorise les bulles).
+    // ACTION_APP_NOTIFICATION_SETTINGS (API 26+) ; si la ROM n'a pas
+    // cette page (ActivityNotFoundException) ou si SDK < 26, repli sur
+    // la fiche « Details de l'application ».
+    private fun openNotificationSettings(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                context.startActivity(
+                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                        putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    },
+                )
+                return
+            } catch (e: ActivityNotFoundException) {
+                // ROM sans cette page : on tombe sur le repli ci-dessous
+            }
+        }
+        context.startActivity(
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.parse("package:" + context.packageName)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            },
+        )
     }
     }
 }

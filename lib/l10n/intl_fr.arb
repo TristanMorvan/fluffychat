@@ -1528,6 +1528,16 @@
         "type": "String",
         "placeholders": {}
     },
+    "openSystemSettings": "Ouvrir les réglages",
+    "@openSystemSettings": {
+        "type": "String",
+        "placeholders": {}
+    },
+    "bubblesEnableSystemHint": "Pour afficher les bulles flottantes, autorisez les bulles pour cette application dans les réglages Android.",
+    "@bubblesEnableSystemHint": {
+        "type": "String",
+        "placeholders": {}
+    },
     "unpin": "Désépingler",
     "@unpin": {
         "type": "String",

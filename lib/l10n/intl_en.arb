@@ -1758,6 +1758,16 @@
         "type": "String",
         "placeholders": {}
     },
+    "openSystemSettings": "Open settings",
+    "@openSystemSettings": {
+        "type": "String",
+        "placeholders": {}
+    },
+    "bubblesEnableSystemHint": "To see floating bubbles, allow bubbles for this app in the Android settings.",
+    "@bubblesEnableSystemHint": {
+        "type": "String",
+        "placeholders": {}
+    },
     "unpin": "Unpin",
     "@unpin": {
         "type": "String",
