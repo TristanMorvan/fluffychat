@@ -178,13 +178,31 @@ object BubbleNotificationHelper {
                 contentIntent,
                 IconCompat.createWithBitmap(avatarBitmap),
             )
-                .setDesiredHeight(420)
+                .setDesiredHeight(maxBubbleHeight(context))
                 .setAutoExpandBubble(autoExpand)
                 .setSuppressNotification(false)
                 .build(),
         )
 
         NotificationManagerCompat.from(context).notify(id, builder.build())
+    }
+
+    /**
+     * Fork: hauteur de bulle demandee = ecran reel moins barre d'etat,
+     * plancher 85 % (l'ancien 420 px code en dur faisait remonter le
+     * BubbleController a son minimum = demi-ecran). Android clampera de
+     * toute facon au plafond systeme si la valeur depasse.
+     */
+    internal fun maxBubbleHeight(context: Context): Int {
+        val full = context.resources.displayMetrics.heightPixels
+        val statusBarRes =
+            context.resources.getIdentifier("status_bar_height", "dimen", "android")
+        val statusBar = if (statusBarRes > 0) {
+            context.resources.getDimensionPixelSize(statusBarRes)
+        } else {
+            0
+        }
+        return maxOf(full - statusBar, (full * 0.85f).toInt())
     }
 
     /**
