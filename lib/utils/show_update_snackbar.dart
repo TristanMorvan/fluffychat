@@ -118,36 +118,10 @@ abstract class UpdateNotifier {
                     l10n.updateInstalled(currentVersion),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  Text(
-                    l10n.possibleByYou,
-                    textAlign: .center,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
                 ],
               ),
             ),
             actions: [
-              AdaptiveDialogAction(
-                bigButtons: true,
-                targetPlatform: TargetPlatform.android,
-                onPressed: () => launchUrlString(AppConfig.helpUrl),
-                child: Row(
-                  mainAxisSize: .min,
-                  spacing: 4,
-                  children: [
-                    Icon(
-                      Icons.favorite,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    Text(
-                      l10n.support,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
               AdaptiveDialogAction(
                 bigButtons: true,
                 targetPlatform: TargetPlatform.android,

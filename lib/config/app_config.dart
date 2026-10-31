@@ -43,9 +43,6 @@ abstract class AppConfig {
   static const String changelogUrl = 'https://fluffychat.im/changelog/';
   static const String latestReleaseApiUrl =
       'https://api.github.com/repos/krille-chan/fluffychat/releases/latest';
-  static const String helpUrl =
-      'https://ko-fi.com/post/How-can-I-support-FluffyChat-J2G325WE6I';
-
   static const Set<String> defaultReactions = {'👍', '❤️', '😂', '😮', '😢'};
 
   static final Uri newIssueUrl = Uri(
