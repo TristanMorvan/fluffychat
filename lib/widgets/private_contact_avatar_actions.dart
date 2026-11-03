@@ -9,6 +9,7 @@ import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/conversation_bubble.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
 import 'package:fluffychat/utils/private_contact_avatar.dart';
+import 'package:fluffychat/widgets/private_avatar_crop_page.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:matrix/matrix.dart';
 
@@ -77,7 +78,16 @@ class _PrivateContactAvatarActionsState
           return;
         if (await file.length() > PrivateContactAvatarStore.maxFileBytes)
           throw const FormatException('Image too large');
-        await localStore.set(account, userId, await file.readAsBytes());
+        final bytes = await file.readAsBytes();
+        if (!mounted) return;
+        final cropped = await showPrivateAvatarCrop(context, bytes);
+        if (cropped == null || !mounted) return;
+        final cropAccount = PrivateAvatarAccount.fromClient(widget.client);
+        if (widget.userId != userId ||
+            cropAccount?.userId != account.userId ||
+            cropAccount?.homeserver != account.homeserver)
+          return;
+        await localStore.set(account, userId, cropped);
       }
       final refreshAccount = PrivateAvatarAccount.fromClient(client);
       if (PlatformInfos.isAndroid &&

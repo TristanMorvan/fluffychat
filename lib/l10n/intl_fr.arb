@@ -2898,5 +2898,9 @@
   "privateAvatarChoose": "Choisir une photo privée",
   "privateAvatarReset": "Rétablir la photo d’origine",
   "privateAvatarHelp": "Visible uniquement pour ce compte sur cet appareil. Cette photo ne sera jamais envoyée.",
-  "privateAvatarFailed": "Impossible d’utiliser cette photo. Choisissez une image valide de moins de 20 Mo."
+  "privateAvatarFailed": "Impossible d’utiliser cette photo. Choisissez une image valide de moins de 20 Mo.",
+  "privateAvatarCropTitle": "Recadrer la photo",
+  "privateAvatarCropHint": "Pincez pour zoomer et faites glisser la photo pour la positionner. La zone ronde sera votre avatar.",
+  "privateAvatarCropZoom": "Zoom",
+  "privateAvatarCropSave": "Utiliser cette photo"
 }
