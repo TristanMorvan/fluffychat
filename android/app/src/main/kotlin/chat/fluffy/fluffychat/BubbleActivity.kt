@@ -31,7 +31,11 @@ class BubbleActivity : FlutterActivity() {
     override fun provideFlutterEngine(context: android.content.Context): FlutterEngine =
         FlutterEngine(context.applicationContext).also { engine ->
             bubbleEngine = engine
-            MainActivity.registerBubbleChannel(engine, context.applicationContext)
+            MainActivity.registerBubbleChannel(
+                engine,
+                context.applicationContext,
+                bubbleIsolate = true,
+            )
             engine.dartExecutor.executeDartEntrypoint(DartEntrypoint.createDefault())
         }
 

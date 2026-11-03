@@ -65,7 +65,11 @@ class MainActivity : FlutterFragmentActivity() {
 
         // Fork: le moteur étant créé à la main (provideEngine), configureFlutterEngine
         // n'est pas toujours appelé — on enregistre le canal natif dès la création.
-        fun registerBubbleChannel(flutterEngine: FlutterEngine, context: Context) {
+        fun registerBubbleChannel(
+            flutterEngine: FlutterEngine,
+            context: Context,
+            bubbleIsolate: Boolean = false,
+        ) {
             MethodChannel(
                 flutterEngine.dartExecutor.binaryMessenger,
                 BUBBLE_CHANNEL,
@@ -127,12 +131,12 @@ class MainActivity : FlutterFragmentActivity() {
                     }
                 } else if (call.method == "isInBubbleMode") {
                     // Fork: la vue conversation masque sa fleche de retour
-                    // quand elle tourne dans une bulle (API 30+).
-                    val act = context as? android.app.Activity
-                    result.success(
-                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
-                            act?.isInBubbleMode == true,
-                    )
+                    // quand elle tourne dans une bulle. Activity#isInBubbleMode
+                    // est @hide dans android.jar 37 (verifie) et le canal est
+                    // enregistre avec le context applicatif (jamais une
+                    // Activity) : le signal fiable est bubbleIsolate, vrai
+                    // uniquement pour le moteur cree par BubbleActivity.
+                    result.success(bubbleIsolate)
                 } else if (call.method == "getPendingBubbleRoom") {
                     // Fork M6 : Dart demande la piece en attente au demarrage
                     result.success(pendingBubbleRoomId)
