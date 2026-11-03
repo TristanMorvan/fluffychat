@@ -65,10 +65,12 @@ class MainActivity : FlutterFragmentActivity() {
 
         // Fork: le moteur étant créé à la main (provideEngine), configureFlutterEngine
         // n'est pas toujours appelé — on enregistre le canal natif dès la création.
-        // Fork : la BubbleActivity vivante, pour Activity#isLaunchedFromBubble.
-        var activeBubbleActivity: java.lang.ref.WeakReference<android.app.Activity>? = null
-
-        fun registerBubbleChannel(flutterEngine: FlutterEngine, context: Context) {
+        // L'Activity est liee au moteur de la bulle, jamais au moteur principal.
+        fun registerBubbleChannel(
+            flutterEngine: FlutterEngine,
+            context: Context,
+            bubbleActivity: BubbleActivity? = null,
+        ) {
             MethodChannel(
                 flutterEngine.dartExecutor.binaryMessenger,
                 BUBBLE_CHANNEL,
@@ -129,20 +131,15 @@ class MainActivity : FlutterFragmentActivity() {
                         result.error("bubble", e.message, null)
                     }
                 } else if (call.method == "isInBubbleMode") {
-                    // Fork: la vue conversation masque sa fleche de retour
-                    // quand elle tourne dans une bulle. L API publique est
-                    // Activity#isLaunchedFromBubble (API 30+, doc officielle
-                    // « check if the notification activity is launched as a
-                    // bubble ») ; isInBubbleMode est @hide (absent de tous
-                    // les android.jar installes, verifie). Le canal recoit le
-                    // context applicatif, jamais l activite : on passe par la
-                    // BubbleActivity vivante.
-                    val launchedFromBubble =
-                        activeBubbleActivity?.get()?.isLaunchedFromBubble == true
-                    result.success(launchedFromBubble)
+                    // API publique (30+) ; contrairement a un pointeur global,
+                    // le moteur principal ne peut jamais voir la bulle active.
+                    result.success(
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+                            bubbleActivity?.isLaunchedFromBubble == true
+                    )
                 } else if (call.method == "getPendingBubbleRoom") {
                     // Fork M6 : Dart demande la piece en attente au demarrage
-                    result.success(pendingBubbleRoomId)
+                    result.success(if (bubbleActivity != null) pendingBubbleRoomId else null)
                 } else if (call.method == "openNotificationSettings") {
                     try {
                         openNotificationSettings(context)
