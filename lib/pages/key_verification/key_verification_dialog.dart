@@ -177,6 +177,8 @@ class KeyVerificationPageState extends State<KeyVerificationDialog> {
           children: [
             const SizedBox(height: 16),
             Avatar(
+              client: widget.request.client,
+              userId: widget.request.userId,
               mxContent: user?.avatarUrl,
               name: displayName,
               size: Avatar.defaultSize * 2,
@@ -213,7 +215,12 @@ class KeyVerificationPageState extends State<KeyVerificationDialog> {
               Stack(
                 alignment: Alignment.center,
                 children: [
-                  Avatar(mxContent: user?.avatarUrl, name: displayName),
+                  Avatar(
+                    client: widget.request.client,
+                    userId: widget.request.userId,
+                    mxContent: user?.avatarUrl,
+                    name: displayName,
+                  ),
                   const SizedBox(
                     width: Avatar.defaultSize + 2,
                     height: Avatar.defaultSize + 2,

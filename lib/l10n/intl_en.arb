@@ -2882,5 +2882,9 @@
                 "type": "String"
             }
         }
-    }
+    },
+  "privateAvatarChoose": "Choose a private photo",
+  "privateAvatarReset": "Restore original photo",
+  "privateAvatarHelp": "Only visible to this account on this device. This photo will never be sent.",
+  "privateAvatarFailed": "Unable to use this photo. Choose a valid image smaller than 20 MB."
 }

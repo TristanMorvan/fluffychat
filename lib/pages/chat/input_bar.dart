@@ -308,6 +308,7 @@ class InputBar extends StatelessWidget {
       return ListTile(
         onTap: () => onSelected(suggestion),
         leading: Avatar(
+          userId: suggestion.tryGet<String>('mxid'),
           mxContent: url,
           name:
               suggestion.tryGet<String>('displayname') ??

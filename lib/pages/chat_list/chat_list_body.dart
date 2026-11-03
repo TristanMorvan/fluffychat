@@ -120,6 +120,8 @@ class ChatListViewBody extends StatelessWidget {
                                       .localpart ??
                                   L10n.of(context).unknownDevice,
                               avatar: userSearchResult.results[i].avatarUrl,
+                              client: client,
+                              userId: userSearchResult.results[i].userId,
                               onPressed: () => UserDialog.show(
                                 context: context,
                                 profile: userSearchResult.results[i],
@@ -301,12 +303,16 @@ class PublicRoomsHorizontalList extends StatelessWidget {
 }
 
 class _SearchItem extends StatelessWidget {
+  final Client? client;
+  final String? userId;
   final String title;
   final Uri? avatar;
   final void Function() onPressed;
 
   const _SearchItem({
     required this.title,
+    this.client,
+    this.userId,
     this.avatar,
     required this.onPressed,
   });
@@ -320,7 +326,12 @@ class _SearchItem extends StatelessWidget {
         mainAxisSize: .min,
         children: [
           const SizedBox(height: 8),
-          Avatar(mxContent: avatar, name: title),
+          Avatar(
+            client: client,
+            userId: userId,
+            mxContent: avatar,
+            name: title,
+          ),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(

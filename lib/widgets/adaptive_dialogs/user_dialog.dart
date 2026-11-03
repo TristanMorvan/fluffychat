@@ -11,6 +11,7 @@ import 'package:fluffychat/widgets/adaptive_dialogs/adaptive_dialog_action.dart'
 import 'package:fluffychat/widgets/adaptive_dialogs/show_text_input_dialog.dart';
 import 'package:fluffychat/widgets/avatar.dart';
 import 'package:fluffychat/widgets/presence_builder.dart';
+import 'package:fluffychat/widgets/private_contact_avatar_actions.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:go_router/go_router.dart';
@@ -29,22 +30,29 @@ class UserDialog extends StatelessWidget {
   static Future<void> show({
     required BuildContext context,
     required Profile profile,
+    Client? client,
     bool noProfileWarning = false,
   }) => showAdaptiveDialog(
     context: context,
     barrierDismissible: true,
     builder: (context) =>
-        UserDialog(profile, noProfileWarning: noProfileWarning),
+        UserDialog(profile, client: client, noProfileWarning: noProfileWarning),
   );
 
   final Profile profile;
+  final Client? client;
   final bool noProfileWarning;
 
-  const UserDialog(this.profile, {this.noProfileWarning = false, super.key});
+  const UserDialog(
+    this.profile, {
+    this.client,
+    this.noProfileWarning = false,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final client = Matrix.of(context).client;
+    final client = this.client ?? Matrix.of(context).client;
     final directChatRoomId = client.getDirectChatFromUserId(profile.userId);
     final displayname =
         profile.displayName ??
@@ -54,14 +62,14 @@ class UserDialog extends StatelessWidget {
     final theme = Theme.of(context);
     final avatar = profile.avatarUrl;
     return AlertDialog.adaptive(
+      scrollable: true,
       content: PresenceBuilder(
         userId: profile.userId,
-        client: Matrix.of(context).client,
+        client: client,
         builder: (context, presence) {
-          if (presence == null) return const SizedBox.shrink();
-          final statusMsg = presence.statusMsg;
-          final lastActiveTimestamp = presence.lastActiveTimestamp;
-          final presenceText = presence.currentlyActive == true
+          final statusMsg = presence?.statusMsg;
+          final lastActiveTimestamp = presence?.lastActiveTimestamp;
+          final presenceText = presence?.currentlyActive == true
               ? L10n.of(context).currentlyActive
               : lastActiveTimestamp != null
               ? L10n.of(
@@ -77,16 +85,20 @@ class UserDialog extends StatelessWidget {
                 spacing: 12,
                 children: [
                   Avatar(
+                    client: client,
+                    userId: profile.userId,
                     mxContent: avatar,
                     name: displayname,
                     size: Avatar.defaultSize * 1.5,
                     animated: true,
-                    onTap: avatar != null
-                        ? () => showDialog(
-                            context: context,
-                            builder: (_) => MxcImageViewer(avatar),
-                          )
-                        : null,
+                    onTap: () => showDialog(
+                      context: context,
+                      builder: (_) => MxcImageViewer(
+                        avatar,
+                        client: client,
+                        userId: profile.userId,
+                      ),
+                    ),
                   ),
                   Expanded(
                     child: Column(
@@ -168,6 +180,10 @@ class UserDialog extends StatelessWidget {
                 ],
               ),
 
+              PrivateContactAvatarActions(
+                client: client,
+                userId: profile.userId,
+              ),
               if (statusMsg != null)
                 ConstrainedBox(
                   constraints: BoxConstraints(maxHeight: 200),

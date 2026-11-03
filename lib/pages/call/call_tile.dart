@@ -67,6 +67,8 @@ class CallTile extends StatelessWidget {
                   : Center(
                       child: Avatar(
                         size: 64,
+                        client: user.room.client,
+                        userId: user.id,
                         mxContent: user.avatarUrl,
                         name: user.calcDisplayname(),
                       ),

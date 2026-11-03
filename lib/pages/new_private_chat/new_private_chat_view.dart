@@ -269,6 +269,8 @@ class NewPrivateChatView extends StatelessWidget {
                               return ListTile(
                                 leading: Avatar(
                                   name: displayname,
+                                  client: Matrix.of(context).client,
+                                  userId: contact.userId,
                                   mxContent: contact.avatarUrl,
                                   presenceUserId: contact.userId,
                                 ),

@@ -74,6 +74,7 @@ class MainActivity : FlutterFragmentActivity() {
         // Fork M6 : piece a buller en attente (cas app morte -> ouverture
         // par la bulle : Dart la reclamera via getPendingBubbleRoom)
         var pendingBubbleRoomId: String? = null
+        var pendingBubblePayload: String? = null
 
         // Fork: le moteur étant créé à la main (provideEngine), configureFlutterEngine
         // n'est pas toujours appelé — on enregistre le canal natif dès la création.
@@ -99,6 +100,7 @@ class MainActivity : FlutterFragmentActivity() {
                             call.argument<String>("groupKey"),
                             call.argument<String>("payload") ?: "",
                             call.argument<ByteArray>("avatar"),
+                            roomId = call.argument<String>("roomId") ?: call.argument<String>("shortcutId") ?: "",
                         )
                         result.success(null)
                     } catch (e: Exception) {
@@ -135,12 +137,43 @@ class MainActivity : FlutterFragmentActivity() {
                         openBubble(
                             context,
                             call.argument<String>("roomId") ?: "",
+                            call.argument<String>("shortcutId") ?: call.argument<String>("roomId") ?: "",
                             call.argument<String>("title") ?: "",
                             call.argument<String>("payload") ?: "",
+                            call.argument<ByteArray>("avatar"),
+                            call.argument<String>("groupKey"),
                             result,
                         )
                     } catch (e: Exception) {
                         result.error("bubble", e.message, null)
+                    }
+                } else if (call.method == "refreshContactSenderAvatar") {
+                    try {
+                        BubbleNotificationHelper.refreshContactSenderAvatar(
+                            context,
+                            call.argument<String>("userId") ?: "",
+                            call.argument<String>("groupKey") ?: "",
+                            call.argument<ByteArray>("avatar"),
+                        )
+                        result.success(null)
+                    } catch (e: Exception) {
+                        result.error("bubble", e.message, null)
+                    }
+                } else if (call.method == "refreshConversationAvatar") {
+                    try {
+                        BubbleNotificationHelper.refreshConversationAvatar(
+                            context,
+                            call.argument<String>("roomId") ?: "",
+                            call.argument<String>("shortcutId") ?: "",
+                            call.argument<String>("payload") ?: "",
+                            call.argument<String>("title") ?: "",
+                            call.argument<String>("userId") ?: "",
+                            call.argument<String>("groupKey") ?: "",
+                            call.argument<ByteArray>("avatar"),
+                        )
+                        result.success(null)
+                    } catch (e: Exception) {
+                        result.error("avatar_refresh", e.message, null)
                     }
                 } else if (call.method == "isInBubbleMode") {
                     // API publique (30+) ; contrairement a un pointeur global,
@@ -149,6 +182,8 @@ class MainActivity : FlutterFragmentActivity() {
                         Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
                             bubbleActivity?.isLaunchedFromBubble == true
                     )
+                } else if (call.method == "getPendingBubblePayload") {
+                    result.success(if (bubbleActivity != null) pendingBubblePayload else null)
                 } else if (call.method == "getPendingBubbleRoom") {
                     // Fork M6 : Dart demande la piece en attente au demarrage
                     result.success(if (bubbleActivity != null) pendingBubbleRoomId else null)
@@ -201,8 +236,11 @@ class MainActivity : FlutterFragmentActivity() {
     private fun openBubble(
         context: Context,
         roomId: String,
+        shortcutId: String,
         title: String,
         payload: String,
+        avatarBytes: ByteArray?,
+        groupKey: String?,
         result: MethodChannel.Result,
     ) {
         if (roomId.isEmpty()) {
@@ -229,15 +267,16 @@ class MainActivity : FlutterFragmentActivity() {
             context,
             // id stable par pièce : l'ouverture manuelle remplace sa propre
             // notif au lieu d'empiler
-            (roomId.hashCode() and 0x7FFF0000) or 0x42,
+            (shortcutId.hashCode() and 0x7FFF0000) or 0x42,
             title,
             title,
             null,
-            roomId,
-            null,
+            shortcutId,
+            groupKey,
             payload,
-            null,
+            avatarBytes,
             autoExpand = true,
+            roomId = roomId,
         )
         result.success(null)
     }

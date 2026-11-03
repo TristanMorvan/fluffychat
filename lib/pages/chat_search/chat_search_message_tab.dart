@@ -106,7 +106,13 @@ class _MessageSearchResultListTile extends StatelessWidget {
     return ListTile(
       title: Row(
         children: [
-          Avatar(mxContent: sender.avatarUrl, name: displayname, size: 16),
+          Avatar(
+            client: event.room.client,
+            userId: event.senderId,
+            mxContent: sender.avatarUrl,
+            name: displayname,
+            size: 16,
+          ),
           const SizedBox(width: 8),
           Text(displayname),
           Expanded(

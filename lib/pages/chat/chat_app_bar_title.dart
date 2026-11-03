@@ -45,6 +45,8 @@ class ChatAppBarTitle extends StatelessWidget {
           Hero(
             tag: 'content_banner',
             child: Avatar(
+              client: room.client,
+              userId: room.isDirectChat ? room.directChatMatrixID : null,
               mxContent: room.avatar,
               name: room.getLocalizedDisplayname(
                 MatrixLocals(L10n.of(context)),

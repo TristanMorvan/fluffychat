@@ -51,6 +51,7 @@ class EventInfoDialog extends StatelessWidget {
               mxContent: event.senderFromMemoryOrFallback.avatarUrl,
               name: event.senderFromMemoryOrFallback.calcDisplayname(),
               client: event.room.client,
+              userId: event.senderId,
               presenceUserId: event.senderId,
             ),
             title: Text(L10n.of(context).sender),

@@ -62,6 +62,8 @@ class SeenByRow extends StatelessWidget {
                         : seenByUsers)
                     .map(
                       (user) => Avatar(
+                        client: user.room.client,
+                        userId: user.id,
                         mxContent: user.avatarUrl,
                         name: user.calcDisplayname(),
                         size: 16,

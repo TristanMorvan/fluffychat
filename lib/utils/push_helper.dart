@@ -19,6 +19,7 @@ import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:fluffychat/utils/notification_avatar_extension.dart';
 import 'package:fluffychat/utils/notification_background_handler.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
+import 'package:fluffychat/utils/private_contact_avatar.dart';
 import 'package:fluffychat/utils/start_push_foreground_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -132,15 +133,18 @@ Future<void> _tryPushHelper(
             ) ??
             await ClientManager.createClient(clientName, store));
 
+  final operation = PrivateAvatarOperation(client);
   lastReceivedPushNotification[client.clientName] = DateTime.now();
 
   l10n ??= await L10n.delegate.load(PlatformDispatcher.instance.locale);
+  if (!operation.isCurrent) return;
 
   Logs().v('Load event...');
   final event = await client.getEventByPushNotification(
     notification,
     storeInDatabase: false,
   );
+  if (!operation.isCurrent) return;
 
   updateAppBadge(notification.counts?.unread ?? 0);
 
@@ -149,18 +153,21 @@ Future<void> _tryPushHelper(
     if (client.syncPending) return;
     if (clients?.length == 1 && (notification.counts?.unread == 0)) {
       if (PlatformInfos.isAndroid && AppSettings.androidBubbles.value) {
-        await const MethodChannel('chat.fluffy/bubbles')
-            .invokeMethod<void>('clearNonBubbleNotifications');
+        await const MethodChannel(
+          'chat.fluffy/bubbles',
+        ).invokeMethod<void>('clearNonBubbleNotifications');
       } else {
         await flutterLocalNotificationsPlugin.cancelAll();
       }
     } else {
       // Make sure client is fully loaded and synced before dismiss notifications:
       await client.roomsLoading;
+      if (!operation.isCurrent) return;
       await client
           .oneShotSync()
           .timeout(const Duration(seconds: 8))
           .catchError((_) => null);
+      if (!operation.isCurrent) return;
       await cancelNotificationsOnSync(
         client.onSync.value!,
         clientName!,
@@ -206,24 +213,34 @@ Future<void> _tryPushHelper(
           hideEdit: true,
           removeMarkdown: true,
         );
+  if (!operation.isCurrent) return;
 
   // The person object for the android message style notification
   final avatar = event.room.avatar;
   // A DM room's avatar can be unset even when the sender has a profile photo.
   // Resolve the sender first; keep the room avatar as a fallback for rooms
   // whose peer membership has not reached the local cache yet.
-  final senderAvatar = event.senderFromMemoryOrFallback.avatarUrl ??
+  final senderAvatar =
+      event.senderFromMemoryOrFallback.avatarUrl ??
       (event.room.isDirectChat ? avatar : null);
 
   final ownUser = event.room.unsafeGetUserFromMemoryOrFallback(client.userID!);
 
   final userAvatarFile = await client.tryDownloadNotificationAvatar(
     ownUser.avatarUrl,
+    userId: ownUser.id,
   );
-  final roomAvatarFile = await client.tryDownloadNotificationAvatar(avatar);
+  if (!operation.isCurrent) return;
+  final roomAvatarFile = await client.tryDownloadNotificationAvatar(
+    avatar,
+    userId: event.room.isDirectChat ? event.room.directChatMatrixID : null,
+  );
+  if (!operation.isCurrent) return;
   final senderAvatarFile = await client.tryDownloadNotificationAvatar(
     senderAvatar,
+    userId: event.senderId,
   );
+  if (!operation.isCurrent) return;
 
   final id = '${client.clientName}_${notification.roomId}'.hashCode;
 
@@ -247,6 +264,7 @@ Future<void> _tryPushHelper(
       ? await AndroidFlutterLocalNotificationsPlugin()
             .getActiveNotificationMessagingStyle(id: id)
       : null;
+  if (!operation.isCurrent) return;
   messagingStyleInformation?.messages?.add(newMessage);
 
   final roomName = event.room.getLocalizedDisplayname(MatrixLocals(l10n));
@@ -271,11 +289,13 @@ Future<void> _tryPushHelper(
         AndroidFlutterLocalNotificationsPlugin
       >()
       ?.createNotificationChannelGroup(messageRooms);
+  if (!operation.isCurrent) return;
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin
       >()
       ?.createNotificationChannel(roomsChannel);
+  if (!operation.isCurrent) return;
 
   final androidPlatformChannelSpecifics = AndroidNotificationDetails(
     AppConfig.pushNotificationsChannelId,
@@ -285,7 +305,7 @@ Future<void> _tryPushHelper(
     icon: '@drawable/ic_stat_titucle',
     number: notification.counts?.unread,
     category: AndroidNotificationCategory.message,
-    shortcutId: event.room.id,
+    shortcutId: conversationShortcutId(client, event.room.id),
     styleInformation:
         messagingStyleInformation ??
         MessagingStyleInformation(
@@ -346,6 +366,7 @@ Future<void> _tryPushHelper(
   final iOSAttachmentPath = PlatformInfos.isIOS
       ? await client.getIosNotificationAvatar(event.room.avatar)
       : null;
+  if (!operation.isCurrent) return;
   final iOSPlatformChannelSpecifics = DarwinNotificationDetails(
     threadIdentifier: '${notification.clientName}_${notification.roomId}',
     attachments: iOSAttachmentPath == null
@@ -365,8 +386,10 @@ Future<void> _tryPushHelper(
   final title = event.room.getLocalizedDisplayname(MatrixLocals(l10n));
 
   if (PlatformInfos.isAndroid && messagingStyleInformation == null) {
-    await _setShortcut(event, l10n, title, roomAvatarFile);
+    if (!operation.isCurrent) return;
+    await _setShortcut(event, l10n, title, roomAvatarFile, operation);
   }
+  if (!operation.isCurrent) return;
 
   final needsTitleAndBody = !PlatformInfos.isAndroid;
 
@@ -380,6 +403,7 @@ Future<void> _tryPushHelper(
       event.type != RtcNotificationContent.eventType &&
       !isSingleEmojiNotification(body)) {
     try {
+      if (!operation.isCurrent) return;
       await const MethodChannel(
         'chat.fluffy/bubbles',
       ).invokeMethod<void>('showBubble', <String, Object?>{
@@ -387,7 +411,8 @@ Future<void> _tryPushHelper(
         'title': event.room.getLocalizedDisplayname(MatrixLocals(l10n)),
         'text': body,
         'sender': senderName,
-        'shortcutId': event.room.id,
+        'shortcutId': conversationShortcutId(client, event.room.id),
+        'roomId': event.room.id,
         'groupKey': client.clientName,
         'payload': FluffyChatPushPayload(
           client.clientName,
@@ -403,6 +428,7 @@ Future<void> _tryPushHelper(
     }
   }
 
+  if (!operation.isCurrent) return;
   await flutterLocalNotificationsPlugin.show(
     id: notification.notificationId,
     title: needsTitleAndBody ? title : null,
@@ -416,11 +442,13 @@ Future<void> _tryPushHelper(
   );
 
   // Send summary notification on Android
+  if (!operation.isCurrent) return;
   if (PlatformInfos.isAndroid) {
     await updateSummaryNotification(
       clientName: client.clientName,
       l10n: l10n,
       flutterLocalNotificationsPlugin: flutterLocalNotificationsPlugin,
+      operation: operation,
     );
   }
   Logs().v('Push helper has been completed!');
@@ -438,6 +466,7 @@ void updateAppBadge(int unreadCount) {
 }
 
 Future<void> updateSummaryNotification({
+  PrivateAvatarOperation? operation,
   required FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin,
   required String clientName,
   required L10n l10n,
@@ -446,6 +475,7 @@ Future<void> updateSummaryNotification({
       (await flutterLocalNotificationsPlugin.getActiveNotifications())
           .where((n) => n.groupKey == clientName && n.id != clientName.hashCode)
           .toList();
+  if (operation != null && !operation.isCurrent) return;
 
   if (activeNotifications.isEmpty) {
     await flutterLocalNotificationsPlugin.cancel(id: clientName.hashCode);
@@ -502,12 +532,14 @@ Future<void> _setShortcut(
   L10n l10n,
   String title,
   Uint8List? avatarFile,
+  PrivateAvatarOperation operation,
 ) async {
   final flutterShortcuts = FlutterShortcuts();
   await flutterShortcuts.initialize(debug: !kReleaseMode);
+  if (!operation.isCurrent) return;
   await flutterShortcuts.pushShortcutItem(
     shortcut: ShortcutItem(
-      id: event.room.id,
+      id: conversationShortcutId(event.room.client, event.room.id),
       action: AppConfig.inviteLinkPrefix + event.room.id,
       shortLabel: title,
       conversationShortcut: true,
@@ -664,8 +696,9 @@ Future<void> cancelNotificationsOnSync(
     }
     final id = '${clientName}_$roomId'.hashCode;
     if (PlatformInfos.isAndroid && AppSettings.androidBubbles.value) {
-      await const MethodChannel('chat.fluffy/bubbles')
-          .invokeMethod<void>('cancelNotificationUnlessBubble', {'id': id});
+      await const MethodChannel(
+        'chat.fluffy/bubbles',
+      ).invokeMethod<void>('cancelNotificationUnlessBubble', {'id': id});
     } else {
       await flutterLocalNotificationsPlugin.cancel(id: id);
     }

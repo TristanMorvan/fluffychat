@@ -82,7 +82,14 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
           PulsatingWidget(
             spreadRadius: 10.0,
             color: theme.colorScheme.primary,
-            child: Avatar(mxContent: avatar, name: displayname),
+            child: Avatar(
+              client: widget.event.room.client,
+              userId: widget.event.room.isDirectChat
+                  ? widget.event.room.directChatMatrixID
+                  : null,
+              mxContent: avatar,
+              name: displayname,
+            ),
           ),
           Text(displayname, textAlign: .center),
         ],

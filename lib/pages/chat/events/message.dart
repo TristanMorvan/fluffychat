@@ -294,6 +294,8 @@ class Message extends StatelessWidget {
                           builder: (context, snapshot) {
                             final user = snapshot.data ?? sender;
                             return Avatar(
+                              client: user.room.client,
+                              userId: user.id,
                               mxContent: user.avatarUrl,
                               name: user.calcDisplayname(),
                               onTap: () => showMemberActionsPopupMenu(

@@ -163,6 +163,10 @@ class _ShareScaffoldDialogState extends State<ShareScaffoldDialog> {
                         ),
                       ),
                       secondary: Avatar(
+                        client: room.client,
+                        userId: room.isDirectChat
+                            ? room.directChatMatrixID
+                            : null,
                         mxContent: room.avatar,
                         name: displayname,
                         size: Avatar.defaultSize * 0.75,

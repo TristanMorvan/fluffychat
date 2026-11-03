@@ -63,6 +63,8 @@ class StateMessage extends StatelessWidget {
                                 child: Padding(
                                   padding: const EdgeInsets.only(right: 4.0),
                                   child: Avatar(
+                                    client: event.room.client,
+                                    userId: event.senderId,
                                     name: event.senderFromMemoryOrFallback
                                         .calcDisplayname(),
                                     size: 14,

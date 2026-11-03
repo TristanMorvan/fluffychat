@@ -179,6 +179,8 @@ class _InviteContactListTile extends StatelessWidget {
 
     return ListTile(
       leading: Avatar(
+        client: Matrix.of(context).client,
+        userId: profile.userId,
         mxContent: profile.avatarUrl,
         name: profile.displayName,
         presenceUserId: profile.userId,

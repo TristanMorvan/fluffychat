@@ -61,13 +61,21 @@ class ChatEventList extends StatelessWidget {
             spacing: 16,
             children: [
               Avatar(
+                client: room.client,
+                userId: room.isDirectChat ? room.directChatMatrixID : null,
                 mxContent: roomAvatar,
                 name: room.getLocalizedDisplayname(),
                 size: Avatar.defaultSize * 2.5,
-                onTap: roomAvatar != null
+                onTap: roomAvatar != null || room.isDirectChat
                     ? () => showDialog(
                         context: context,
-                        builder: (_) => MxcImageViewer(roomAvatar),
+                        builder: (_) => MxcImageViewer(
+                          roomAvatar,
+                          client: room.client,
+                          userId: room.isDirectChat
+                              ? room.directChatMatrixID
+                              : null,
+                        ),
                       )
                     : null,
                 borderRadius: room.isSpace

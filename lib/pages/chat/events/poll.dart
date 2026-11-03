@@ -153,6 +153,8 @@ class PollWidget extends StatelessWidget {
                                       horizontal: 2.0,
                                     ),
                                     child: Avatar(
+                                      client: event.room.client,
+                                      userId: userId,
                                       mxContent: user?.avatarUrl,
                                       name:
                                           user?.calcDisplayname() ??

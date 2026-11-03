@@ -146,6 +146,10 @@ class ChatListItem extends StatelessWidget {
                                     AppConfig.spaceBorderRadius,
                                   )
                                 : null,
+                            client: room.client,
+                            userId: room.isDirectChat
+                                ? room.directChatMatrixID
+                                : null,
                             mxContent: room.avatar,
                             size: space != null
                                 ? Avatar.defaultSize * 0.75

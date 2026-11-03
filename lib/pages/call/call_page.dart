@@ -161,6 +161,8 @@ class CallPage extends StatelessWidget {
                         localVideoTrack.muted
                             ? Center(
                                 child: Avatar(
+                                  client: ownUser.room.client,
+                                  userId: ownUser.id,
                                   mxContent: ownUser.avatarUrl,
                                   name: ownUser.calcDisplayname(),
                                   size: 128,

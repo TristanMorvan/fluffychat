@@ -39,6 +39,7 @@ class BubbleActivity : FlutterActivity() {
         intent?.getStringExtra(EXTRA_ROOM)?.takeIf { it.isNotEmpty() }?.let {
             MainActivity.pendingBubbleRoomId = it
         }
+        MainActivity.pendingBubblePayload = intent?.getStringExtra(BubbleTapReceiver.EXTRA_PAYLOAD)
         super.onCreate(savedInstanceState)
     }
 
@@ -54,7 +55,7 @@ class BubbleActivity : FlutterActivity() {
                     MethodChannel(
                         eng.dartExecutor.binaryMessenger,
                         MainActivity.BUBBLE_CHANNEL,
-                    ).invokeMethod("onBubbleRoom", room)
+                    ).invokeMethod("onBubbleRoom", mapOf("roomId" to room, "payload" to MainActivity.pendingBubblePayload))
                 }
             } catch (e: Exception) {
                 // Dart pas encore a l'ecoute : le pending sera demande au boot Dart
@@ -62,12 +63,13 @@ class BubbleActivity : FlutterActivity() {
         }
         // La conversation est affichee en bulle : sa notif a fait son travail.
         MainActivity.pendingBubbleRoomId?.let {
-            BubbleNotificationHelper.onBubbleOpened(this, it)
+            BubbleNotificationHelper.onBubbleOpened(this, intent?.getStringExtra(EXTRA_SHORTCUT) ?: it)
         }
     }
 
     override fun onDestroy() {
         MainActivity.pendingBubbleRoomId = null
+        MainActivity.pendingBubblePayload = null
         super.onDestroy()
         bubbleEngine?.destroy()
         bubbleEngine = null
@@ -84,5 +86,6 @@ class BubbleActivity : FlutterActivity() {
 
     companion object {
         const val EXTRA_ROOM = "bubble_room"
+        const val EXTRA_SHORTCUT = "bubble_shortcut"
     }
 }

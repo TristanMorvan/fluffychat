@@ -195,6 +195,8 @@ class HtmlMessage extends StatelessWidget {
             return WidgetSpan(
               child: MatrixPill(
                 key: Key('user_pill_$matrixId'),
+                client: room.client,
+                userId: matrixId,
                 name: user.calcDisplayname(),
                 avatar: user.avatarUrl,
                 uri: href,
@@ -211,6 +213,10 @@ class HtmlMessage extends StatelessWidget {
             return WidgetSpan(
               child: MatrixPill(
                 name: room?.getLocalizedDisplayname() ?? matrixId,
+                client: this.room.client,
+                userId: room?.isDirectChat == true
+                    ? room?.directChatMatrixID
+                    : null,
                 avatar: room?.avatar,
                 uri: href,
                 outerContext: context,
@@ -683,6 +689,8 @@ class _CollapsibleTextState extends State<_CollapsibleText> {
 
 class MatrixPill extends StatelessWidget {
   final String name;
+  final Client? client;
+  final String? userId;
   final BuildContext outerContext;
   final Uri? avatar;
   final String uri;
@@ -693,6 +701,8 @@ class MatrixPill extends StatelessWidget {
     super.key,
     required this.name,
     required this.outerContext,
+    this.client,
+    this.userId,
     this.avatar,
     required this.uri,
     required this.fontSize,
@@ -710,7 +720,13 @@ class MatrixPill extends StatelessWidget {
             WidgetSpan(
               child: Padding(
                 padding: const EdgeInsetsDirectional.only(end: 4.0),
-                child: Avatar(mxContent: avatar, name: name, size: 16),
+                child: Avatar(
+                  client: client,
+                  userId: userId,
+                  mxContent: avatar,
+                  name: name,
+                  size: 16,
+                ),
               ),
             ),
             TextSpan(

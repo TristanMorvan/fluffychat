@@ -3,9 +3,11 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'package:fluffychat/utils/private_contact_avatar.dart';
 import 'package:fluffychat/utils/string_color.dart';
 import 'package:fluffychat/widgets/mxc_image.dart';
 import 'package:fluffychat/widgets/presence_builder.dart';
+import 'package:fluffychat/widgets/private_contact_avatar_image.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:matrix/matrix.dart';
 
@@ -16,6 +18,10 @@ class Avatar extends StatelessWidget {
   final void Function()? onTap;
   static const double defaultSize = 48;
   final Client? client;
+
+  /// Explicit Matrix person identity; leave null for group/space avatars.
+  final String? userId;
+  final PrivateContactAvatarStore? privateAvatarStore;
   final String? presenceUserId;
   final Color? presenceBackgroundColor;
   final BorderRadius? borderRadius;
@@ -31,6 +37,8 @@ class Avatar extends StatelessWidget {
     this.size = defaultSize,
     this.onTap,
     this.client,
+    this.userId,
+    this.privateAvatarStore,
     this.presenceUserId,
     this.presenceBackgroundColor,
     this.borderRadius,
@@ -78,46 +86,52 @@ class Avatar extends StatelessWidget {
                   side: BorderSide.none,
                 ),
             clipBehavior: Clip.antiAlias,
-            child: MxcImage(
+            child: PrivateContactAvatarImage(
               client: client,
-              borderRadius: borderRadius,
-              key: ValueKey(mxContent.toString()),
-              cacheKey:
-                  '${mxContent}_${size}_${animated ? 'animated' : 'static'}',
-              uri: mxContent,
-              isThumbnail: !animated,
-              animated: animated,
-              fit: BoxFit.cover,
-              width: size,
-              height: size,
-              placeholder: (_) => noPic
-                  ? Container(
-                      decoration: BoxDecoration(
-                        color:
-                            backgroundColor ??
-                            fallbackLetters.colorScheme.primaryContainer,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        fallbackLetters,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'RobotoMono',
+              userId: userId,
+              store: privateAvatarStore,
+              size: size,
+              child: MxcImage(
+                client: client,
+                borderRadius: borderRadius,
+                key: ValueKey(mxContent.toString()),
+                cacheKey:
+                    '${mxContent}_${size}_${animated ? 'animated' : 'static'}',
+                uri: mxContent,
+                isThumbnail: !animated,
+                animated: animated,
+                fit: BoxFit.cover,
+                width: size,
+                height: size,
+                placeholder: (_) => noPic
+                    ? Container(
+                        decoration: BoxDecoration(
                           color:
-                              textColor ??
-                              fallbackLetters.colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.bold,
-                          fontSize: (size / 2.5).roundToDouble(),
+                              backgroundColor ??
+                              fallbackLetters.colorScheme.primaryContainer,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          fallbackLetters,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'RobotoMono',
+                            color:
+                                textColor ??
+                                fallbackLetters.colorScheme.onPrimaryContainer,
+                            fontWeight: FontWeight.bold,
+                            fontSize: (size / 2.5).roundToDouble(),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Icon(
+                          Icons.person_2,
+                          color: theme.colorScheme.tertiary,
+                          size: size / 1.5,
                         ),
                       ),
-                    )
-                  : Center(
-                      child: Icon(
-                        Icons.person_2,
-                        color: theme.colorScheme.tertiary,
-                        size: size / 1.5,
-                      ),
-                    ),
+              ),
             ),
           ),
         ),

@@ -1,5 +1,6 @@
 package chat.fluffy.fluffychat
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -100,6 +101,7 @@ object BubbleNotificationHelper {
         // autorisées et la conversation déjà bubblée une fois (restriction
         // Android 11+ : la première bulle exige un tap sur le cercle).
         autoExpand: Boolean = false,
+        roomId: String = shortcutId,
     ) {
         ensureChannel(context)
         val downloadedAvatar =
@@ -117,7 +119,8 @@ object BubbleNotificationHelper {
             id,
             Intent(context, BubbleActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK
-                putExtra(BubbleActivity.EXTRA_ROOM, shortcutId)
+                putExtra(BubbleActivity.EXTRA_ROOM, roomId)
+                putExtra(BubbleActivity.EXTRA_SHORTCUT, shortcutId)
                 putExtra(BubbleTapReceiver.EXTRA_PAYLOAD, payload)
                 putExtra(BubbleTapReceiver.EXTRA_NOTIFICATION_ID, id)
             },
@@ -132,7 +135,7 @@ object BubbleNotificationHelper {
         // Fork: le shortcut de conversation DOIT être publié (pushDynamicShortcut)
         // avant le posting, sinon le système ignore le BubbleMetadata et
         // aucun cercle de bulle n'apparaît sur la notification.
-        ensureBubbleShortcut(context, shortcutId, title, avatarBitmap)
+        ensureBubbleShortcut(context, shortcutId, title, avatarBitmap, roomId, payload)
 
         val senderPerson = Person.Builder().setName(sender ?: title).apply {
             setIcon(IconCompat.createWithBitmap(avatarBitmap))
@@ -219,6 +222,8 @@ object BubbleNotificationHelper {
         shortcutId: String,
         title: String,
         avatarBitmap: Bitmap,
+        roomId: String = shortcutId,
+        payload: String? = null,
     ) {
         if (shortcutId.isEmpty()) return
         try {
@@ -226,7 +231,8 @@ object BubbleNotificationHelper {
             val intent = Intent(context, MainActivity::class.java).apply {
                 action = Intent.ACTION_VIEW
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                putExtra(BubbleActivity.EXTRA_ROOM, shortcutId)
+                putExtra(BubbleActivity.EXTRA_ROOM, roomId)
+                putExtra(BubbleTapReceiver.EXTRA_PAYLOAD, payload)
             }
             // Extras de conversation (motif conversation-shortcuts). Note de
             // review : le vrai canal système (ShortcutInfo.Builder#
@@ -282,6 +288,123 @@ object BubbleNotificationHelper {
             // quota de shortcuts dépassé / ROM capricieuse : la notif
             // classique reste émise, on ne casse pas le flux de notification
             Log.w("BubbleHelper", "ensureBubbleShortcut($shortcutId) failed", e)
+        }
+    }
+
+    // Sender-only update for every active notification belonging to this account.
+    // Recover the original builder: room icon, shortcuts, bubble metadata,
+    // actions, intents and notification identity must remain untouched.
+    fun refreshContactSenderAvatar(
+        context: Context,
+        userId: String,
+        groupKey: String,
+        avatarBytes: ByteArray?,
+    ) {
+        if (userId.isEmpty() || groupKey.isEmpty() || Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
+        val bitmap = avatarBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+        val icon = bitmap?.let { android.graphics.drawable.Icon.createWithBitmap(it) }
+        val manager = context.getSystemService(NotificationManager::class.java)
+        for (item in manager.activeNotifications) {
+            val notification = item.notification
+            if (notification.group != groupKey) continue
+            val builder = android.app.Notification.Builder.recoverBuilder(context, notification)
+            val style = builder.style as? android.app.Notification.MessagingStyle ?: continue
+            var changed = false
+            val replacement = android.app.Notification.MessagingStyle(style.user)
+                .setConversationTitle(style.conversationTitle)
+                .setGroupConversation(style.isGroupConversation)
+            fun replaceMessage(message: android.app.Notification.MessagingStyle.Message): android.app.Notification.MessagingStyle.Message {
+                val person = message.senderPerson
+                // A null key in a group is NOT proof of the contact's identity.
+                if (person == null || person.key != userId) return message
+                changed = true
+                val sender = person.toBuilder().setIcon(icon).build()
+                val copy = android.app.Notification.MessagingStyle.Message(message.text, message.timestamp, sender)
+                if (message.dataMimeType != null && message.dataUri != null) copy.setData(message.dataMimeType, message.dataUri)
+                copy.extras.putAll(message.extras)
+                return copy
+            }
+            style.messages.forEach { replacement.addMessage(replaceMessage(it)) }
+            style.historicMessages.forEach { replacement.addHistoricMessage(replaceMessage(it)) }
+            if (changed) {
+                builder.setStyle(replacement).setOnlyAlertOnce(true)
+                if (style.isGroupConversation && (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || notification.bubbleMetadata == null)) {
+                    // Android reuses MessagingMessage views by text/name/time and
+                    // ignores Person.icon changes. Recreate only the group entry
+                    // to discard its stale avatar, with the same ID and content.
+                    // Suppress child alerts; never cancel a conversation bubble.
+                    builder.setGroupAlertBehavior(Notification.GROUP_ALERT_SUMMARY)
+                    manager.cancel(item.tag, item.id)
+                }
+                manager.notify(item.tag, item.id, builder.build())
+            }
+        }
+        // Native bubble history stores only sender names/text (DM-only), never
+        // Person/icon bytes. showBubble rebuilds it with the latest supplied
+        // avatar on EVERY push, so it cannot resurrect a previous private icon.
+        // Group histories live in the active MessagingStyle updated above and
+        // are read back by the push plugin on the subsequent message.
+    }
+
+    // Refresh only already-posted notifications for this account. Do not call
+    // showBubble: changing a local photo must not invent a new message/bubble.
+    fun refreshConversationAvatar(
+        context: Context,
+        roomId: String,
+        shortcutId: String,
+        payload: String,
+        title: String,
+        userId: String,
+        groupKey: String,
+        avatarBytes: ByteArray?,
+    ) {
+        if (roomId.isEmpty() || groupKey.isEmpty()) return
+        val bitmap = avatarBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+            ?: initialsAvatar(title, roomId)
+        ensureBubbleShortcut(context, shortcutId, title, bitmap, roomId, payload)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
+        val icon = android.graphics.drawable.Icon.createWithBitmap(bitmap)
+        val manager = context.getSystemService(android.app.NotificationManager::class.java)
+        for (item in manager.activeNotifications) {
+            val notification = item.notification
+            if (notification.group != groupKey || (notification.shortcutId != shortcutId && notification.shortcutId != roomId)) continue
+            val builder = android.app.Notification.Builder.recoverBuilder(context, notification)
+                .setLargeIcon(bitmap)
+                .setShortcutId(shortcutId)
+                .setOnlyAlertOnce(true)
+            val style = builder.style as? android.app.Notification.MessagingStyle
+            if (style != null) {
+                val replacement = android.app.Notification.MessagingStyle(style.user)
+                    .setConversationTitle(style.conversationTitle)
+                    .setGroupConversation(style.isGroupConversation)
+                fun replaceMessage(message: android.app.Notification.MessagingStyle.Message): android.app.Notification.MessagingStyle.Message {
+                    val person = message.senderPerson
+                    // Safe legacy null-key fallback ONLY inside this explicitly matched DM.
+                    val sender = if (person != null && (person.key == null || person.key == userId))
+                        person.toBuilder().setIcon(icon).build() else person
+                    val copy = android.app.Notification.MessagingStyle.Message(message.text, message.timestamp, sender)
+                    if (message.dataMimeType != null && message.dataUri != null) copy.setData(message.dataMimeType, message.dataUri)
+                    copy.extras.putAll(message.extras)
+                    return copy
+                }
+                style.messages.forEach { replacement.addMessage(replaceMessage(it)) }
+                style.historicMessages.forEach { replacement.addHistoricMessage(replaceMessage(it)) }
+                builder.setStyle(replacement)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val metadata = notification.bubbleMetadata
+                val intent = metadata?.intent
+                if (metadata != null && intent != null) {
+                    val updated = android.app.Notification.BubbleMetadata.Builder(intent, icon)
+                        .setAutoExpandBubble(false)
+                        .setSuppressNotification(metadata.isNotificationSuppressed)
+                        .setDeleteIntent(metadata.deleteIntent)
+                    if (metadata.desiredHeightResId != 0) updated.setDesiredHeightResId(metadata.desiredHeightResId)
+                    else updated.setDesiredHeight(metadata.desiredHeight)
+                    builder.setBubbleMetadata(updated.build())
+                }
+            }
+            manager.notify(item.tag, item.id, builder.build())
         }
     }
 

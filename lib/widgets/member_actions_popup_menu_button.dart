@@ -51,7 +51,13 @@ Future<void> showMemberActionsPopupMenu({
         child: Row(
           spacing: 12.0,
           children: [
-            Avatar(name: displayname, size: 30, mxContent: user.avatarUrl),
+            Avatar(
+              client: user.room.client,
+              userId: user.id,
+              name: displayname,
+              size: 30,
+              mxContent: user.avatarUrl,
+            ),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 200),
               child: Text(
@@ -305,6 +311,7 @@ Future<void> showMemberActionsPopupMenu({
     case _MemberActions.info:
       await UserDialog.show(
         context: context,
+        client: user.room.client,
         profile: Profile(
           userId: user.id,
           displayName: user.displayName,

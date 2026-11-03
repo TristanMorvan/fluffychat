@@ -11,11 +11,12 @@ import 'package:fluffychat/config/routes.dart';
 import 'package:fluffychat/config/setting_keys.dart';
 import 'package:fluffychat/config/themes.dart';
 import 'package:fluffychat/l10n/l10n.dart';
+import 'package:fluffychat/utils/conversation_bubble.dart';
 import 'package:fluffychat/widgets/app_lock.dart';
 import 'package:fluffychat/widgets/layouts/call_overlay.dart';
 import 'package:fluffychat/widgets/theme_builder.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:matrix/matrix.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -47,7 +48,9 @@ class FluffyChatApp extends StatelessWidget {
   // Fork M6 : pont avec BubbleActivity (bulle flottante Android). Le natif
   // envoie la piece a afficher ; on empile la route conversation, qui sert
   // de contenu a la bulle (fenetre redimensionnee par le systeme).
-  static const MethodChannel _bubbleChannel = MethodChannel('chat.fluffy/bubbles');
+  static const MethodChannel _bubbleChannel = MethodChannel(
+    'chat.fluffy/bubbles',
+  );
 
   /// Fork: vrai quand cet isolate tourne dans la BubbleActivity (bulle
   /// flottante). La vue conversation masque sa fleche de retour quand vrai.
@@ -56,8 +59,15 @@ class FluffyChatApp extends StatelessWidget {
   static Future<void> initBubbleBridge() async {
     _bubbleChannel.setMethodCallHandler((call) async {
       if (call.method == 'onBubbleRoom') {
-        final room = call.arguments as String?;
-        if (room != null && room.isNotEmpty) _openBubbleRoom(room);
+        final arguments = call.arguments;
+        final room = arguments is Map
+            ? arguments['roomId'] as String?
+            : arguments as String?;
+        final payload = arguments is Map
+            ? arguments['payload'] as String?
+            : null;
+        if (room != null && room.isNotEmpty)
+          _openBubbleRoom(room, payload: payload);
       } else if (call.method == 'onLauncherWhileBubble' && !isBubbleMode) {
         router.go('/rooms');
       }
@@ -69,16 +79,21 @@ class FluffyChatApp extends StatelessWidget {
       // equivalent, pose par BubbleActivity avant ce boot Dart.
       final inBubble =
           await _bubbleChannel.invokeMethod<bool>('isInBubbleMode') ?? false;
-      final pending =
-          await _bubbleChannel.invokeMethod<String>('getPendingBubbleRoom');
+      final pending = await _bubbleChannel.invokeMethod<String>(
+        'getPendingBubbleRoom',
+      );
       isBubbleMode = inBubble || (pending?.isNotEmpty ?? false);
-      if (pending != null && pending.isNotEmpty) _openBubbleRoom(pending);
+      final payload = await _bubbleChannel.invokeMethod<String>(
+        'getPendingBubblePayload',
+      );
+      if (pending != null && pending.isNotEmpty)
+        _openBubbleRoom(pending, payload: payload);
     } catch (_) {}
   }
 
-  static void _openBubbleRoom(String roomId) {
+  static void _openBubbleRoom(String roomId, {String? payload}) {
     try {
-      router.push('/rooms/${Uri.encodeComponent(roomId)}');
+      router.push(conversationBubbleLocation(roomId, payload));
     } catch (e) {
       Logs().w('Bubble room navigation failed', e);
     }

@@ -7,6 +7,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:fluffychat/utils/client_download_content_extension.dart';
+import 'package:fluffychat/utils/private_contact_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:path/path.dart' as path;
 
@@ -15,10 +16,25 @@ import 'matrix_sdk_extensions/flutter_matrix_dart_sdk_database/builder.dart';
 const notificationAvatarDimension = 128;
 
 extension NotificationAvatarExtension on Client {
-  Future<Uint8List?> tryDownloadNotificationAvatar(Uri? avatar) async {
+  Future<Uint8List?> tryDownloadNotificationAvatar(
+    Uri? avatar, {
+    String? userId,
+    PrivateContactAvatarStore? privateAvatarStore,
+  }) async {
+    final operation = PrivateAvatarOperation(this);
+    final account = PrivateAvatarAccount.fromClient(this);
+    if (account != null && userId != null) {
+      final local =
+          await (privateAvatarStore ?? PrivateContactAvatarStore.instance).read(
+            account,
+            userId,
+          );
+      if (!operation.isCurrent) return null;
+      if (local != null) return local;
+    }
     if (avatar == null) return null;
     try {
-      return await downloadMxcCached(
+      final bytes = await downloadMxcCached(
         avatar,
         thumbnailMethod: ThumbnailMethod.crop,
         width: notificationAvatarDimension,
@@ -27,6 +43,7 @@ extension NotificationAvatarExtension on Client {
         isThumbnail: true,
         rounded: true,
       ).timeout(const Duration(seconds: 3));
+      return operation.isCurrent ? bytes : null;
     } catch (e, s) {
       Logs().e('Unable to get avatar picture', e, s);
       return null;

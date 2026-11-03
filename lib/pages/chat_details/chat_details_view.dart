@@ -123,15 +123,24 @@ class ChatDetailsView extends StatelessWidget {
                                     ? 'embedded_content_banner'
                                     : 'content_banner',
                                 child: Avatar(
+                                  client: room.client,
+                                  userId: room.isDirectChat
+                                      ? room.directChatMatrixID
+                                      : null,
                                   mxContent: room.avatar,
                                   name: displayname,
                                   size: Avatar.defaultSize * 2.5,
                                   animated: true,
-                                  onTap: roomAvatar != null
+                                  onTap: roomAvatar != null || room.isDirectChat
                                       ? () => showDialog(
                                           context: context,
-                                          builder: (_) =>
-                                              MxcImageViewer(roomAvatar),
+                                          builder: (_) => MxcImageViewer(
+                                            roomAvatar,
+                                            client: room.client,
+                                            userId: room.isDirectChat
+                                                ? room.directChatMatrixID
+                                                : null,
+                                          ),
                                         )
                                       : null,
                                 ),

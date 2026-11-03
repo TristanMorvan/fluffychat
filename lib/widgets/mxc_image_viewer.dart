@@ -4,14 +4,26 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:fluffychat/l10n/l10n.dart';
+import 'package:fluffychat/utils/private_contact_avatar.dart';
+import 'package:fluffychat/widgets/private_contact_avatar_image.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:matrix/matrix.dart';
 
 import 'mxc_image.dart';
 
 class MxcImageViewer extends StatelessWidget {
-  final Uri mxContent;
+  final Uri? mxContent;
+  final Client? client;
+  final String? userId;
+  final PrivateContactAvatarStore? privateAvatarStore;
 
-  const MxcImageViewer(this.mxContent, {super.key});
+  const MxcImageViewer(
+    this.mxContent, {
+    this.client,
+    this.userId,
+    this.privateAvatarStore,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -48,12 +60,20 @@ class MxcImageViewer extends StatelessWidget {
             child: GestureDetector(
               // Ignore taps to not go back here:
               onTap: () {},
-              child: MxcImage(
-                key: ValueKey(mxContent.toString()),
-                uri: mxContent,
+              child: PrivateContactAvatarImage(
+                client: client,
+                userId: userId,
+                store: privateAvatarStore,
+                size: MediaQuery.sizeOf(context).shortestSide,
                 fit: BoxFit.contain,
-                isThumbnail: false,
-                animated: true,
+                child: MxcImage(
+                  client: client,
+                  key: ValueKey(mxContent.toString()),
+                  uri: mxContent,
+                  fit: BoxFit.contain,
+                  isThumbnail: false,
+                  animated: true,
+                ),
               ),
             ),
           ),
