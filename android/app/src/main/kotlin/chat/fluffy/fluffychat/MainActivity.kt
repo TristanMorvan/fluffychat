@@ -38,6 +38,18 @@ class MainActivity : FlutterFragmentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         forwardBubblePayload(intent)
+        // Le launcher doit rouvrir la liste, et non la page de details/chat
+        // laissee ouverte juste avant la creation de la bulle. Ne pas toucher
+        // aux deep links ni au tap de notification.
+        if (intent.action == Intent.ACTION_MAIN &&
+            intent.hasCategory(Intent.CATEGORY_LAUNCHER) &&
+            pendingBubbleRoomId != null
+        ) {
+            engine?.let { eng ->
+                MethodChannel(eng.dartExecutor.binaryMessenger, BUBBLE_CHANNEL)
+                    .invokeMethod("onLauncherWhileBubble", null)
+            }
+        }
     }
 
     // Fork: tap sur une bulle quand l'app était morte — on relaye vers

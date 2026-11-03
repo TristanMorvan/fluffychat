@@ -58,6 +58,8 @@ class FluffyChatApp extends StatelessWidget {
       if (call.method == 'onBubbleRoom') {
         final room = call.arguments as String?;
         if (room != null && room.isNotEmpty) _openBubbleRoom(room);
+      } else if (call.method == 'onLauncherWhileBubble' && !isBubbleMode) {
+        router.go('/rooms');
       }
     });
     try {
