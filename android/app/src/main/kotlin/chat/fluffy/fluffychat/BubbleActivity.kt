@@ -31,11 +31,7 @@ class BubbleActivity : FlutterActivity() {
     override fun provideFlutterEngine(context: android.content.Context): FlutterEngine =
         FlutterEngine(context.applicationContext).also { engine ->
             bubbleEngine = engine
-            MainActivity.registerBubbleChannel(
-                engine,
-                context.applicationContext,
-                bubbleIsolate = true,
-            )
+            MainActivity.registerBubbleChannel(engine, context.applicationContext)
             engine.dartExecutor.executeDartEntrypoint(DartEntrypoint.createDefault())
         }
 
@@ -43,6 +39,7 @@ class BubbleActivity : FlutterActivity() {
         intent?.getStringExtra(EXTRA_ROOM)?.takeIf { it.isNotEmpty() }?.let {
             MainActivity.pendingBubbleRoomId = it
         }
+        MainActivity.activeBubbleActivity = java.lang.ref.WeakReference(this)
         super.onCreate(savedInstanceState)
     }
 
@@ -72,6 +69,9 @@ class BubbleActivity : FlutterActivity() {
 
     override fun onDestroy() {
         MainActivity.pendingBubbleRoomId = null
+        if (MainActivity.activeBubbleActivity?.get() === this) {
+            MainActivity.activeBubbleActivity = null
+        }
         super.onDestroy()
         bubbleEngine?.destroy()
         bubbleEngine = null
