@@ -17,6 +17,7 @@ import 'package:fluffychat/pages/chat/reply_display.dart';
 import 'package:fluffychat/utils/account_config.dart';
 import 'package:fluffychat/utils/matrix_live_kit_calls/matrix_live_kit_call.dart';
 import 'package:fluffychat/widgets/chat_settings_popup_menu.dart';
+import 'package:fluffychat/widgets/fluffy_chat_app.dart';
 import 'package:fluffychat/widgets/matrix.dart';
 import 'package:fluffychat/widgets/mxc_image.dart';
 import 'package:fluffychat/widgets/pulsating_widget.dart';
@@ -112,7 +113,8 @@ class ChatView extends StatelessWidget {
                         tooltip: L10n.of(context).backToMainChat,
                         color: theme.colorScheme.onSecondaryContainer,
                       )
-                    : FluffyThemes.isColumnMode(context)
+                    : FluffyThemes.isColumnMode(context) ||
+                          FluffyChatApp.isBubbleMode
                     ? null
                     : const Center(child: BackButton()),
                 titleSpacing: FluffyThemes.isColumnMode(context) ? 24 : 0,

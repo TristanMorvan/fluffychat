@@ -125,6 +125,14 @@ class MainActivity : FlutterFragmentActivity() {
                     } catch (e: Exception) {
                         result.error("bubble", e.message, null)
                     }
+                } else if (call.method == "isInBubbleMode") {
+                    // Fork: la vue conversation masque sa fleche de retour
+                    // quand elle tourne dans une bulle (API 30+).
+                    val act = context as? android.app.Activity
+                    result.success(
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+                            act?.isInBubbleMode == true,
+                    )
                 } else if (call.method == "getPendingBubbleRoom") {
                     // Fork M6 : Dart demande la piece en attente au demarrage
                     result.success(pendingBubbleRoomId)

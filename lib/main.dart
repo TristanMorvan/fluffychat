@@ -142,8 +142,9 @@ Future<void> startGui(List<Client> clients, SharedPreferences store) async {
   await firstClient?.roomsLoading;
   await firstClient?.accountDataLoading;
 
-  // Fork M6 : pont bulle flottante (BubbleActivity <-> Dart)
-  FluffyChatApp.initBubbleBridge();
+  // Fork M6 : pont bulle flottante (BubbleActivity <-> Dart). Attendu avant
+  // runApp : le flag isBubbleMode doit etre pose avant le premier build.
+  await FluffyChatApp.initBubbleBridge();
 
   runApp(
     FluffyChatApp(

@@ -49,6 +49,7 @@
              systeme pour qu'une activite puisse vivre dans une bulle. -->
         <activity
             android:name=".BubbleActivity"
+            android:taskAffinity=".bubble"
             android:allowEmbedded="true"
             android:documentLaunchMode="always"
             android:resizeableActivity="true"

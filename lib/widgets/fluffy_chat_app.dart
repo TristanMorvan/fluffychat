@@ -49,6 +49,10 @@ class FluffyChatApp extends StatelessWidget {
   // de contenu a la bulle (fenetre redimensionnee par le systeme).
   static const MethodChannel _bubbleChannel = MethodChannel('chat.fluffy/bubbles');
 
+  /// Fork: vrai quand cet isolate tourne dans la BubbleActivity (bulle
+  /// flottante). La vue conversation masque sa fleche de retour quand vrai.
+  static bool isBubbleMode = false;
+
   static Future<void> initBubbleBridge() async {
     _bubbleChannel.setMethodCallHandler((call) async {
       if (call.method == 'onBubbleRoom') {
@@ -57,8 +61,15 @@ class FluffyChatApp extends StatelessWidget {
       }
     });
     try {
+      // Fork: flag bulle lu AVANT le premier build (await dans main) pour
+      // que l'AppBar de la conversation ne rende jamais la fleche de retour
+      // dans une bulle (pas de flash). Le pending room est un signal
+      // equivalent, pose par BubbleActivity avant ce boot Dart.
+      final inBubble =
+          await _bubbleChannel.invokeMethod<bool>('isInBubbleMode') ?? false;
       final pending =
           await _bubbleChannel.invokeMethod<String>('getPendingBubbleRoom');
+      isBubbleMode = inBubble || (pending?.isNotEmpty ?? false);
       if (pending != null && pending.isNotEmpty) _openBubbleRoom(pending);
     } catch (_) {}
   }
