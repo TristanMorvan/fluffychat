@@ -438,7 +438,9 @@ class ChatListController extends State<ChatList>
           context,
         ).store.getString(_serverStoreNamespace);
         Matrix.of(context).backgroundPush?.setupPush(context);
-        UpdateNotifier.showUpdateDialog(context);
+        // TitucleChat fork : popup "update installed" retirée (rythme de releases
+        // élevé + lien changelog vers le projet amont). show_update_snackbar.dart
+        // laissé intact pour limiter les conflits de merge amont.
         UpdateNotifier.showUpdateAvailableBanner(context);
       }
 
