@@ -1,6 +1,7 @@
 package chat.fluffy.fluffychat
 
 import android.os.Bundle
+import android.content.Intent
 import android.view.KeyEvent
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -17,16 +18,17 @@ import io.flutter.plugin.common.MethodChannel
  * cette activite, aucune bulle flottante n'est possible, quel que soit le
  * reglage systeme.
  *
- * Limite MVP assumee : le moteur Flutter est partage avec MainActivity, donc
- * une seule bulle vivante a la fois. La vue bullee (conversation pleine,
- * sans shell de navigation) est pilotee cote Dart via le canal
- * chat.fluffy/bubbles.
+ * Chaque bulle possede son propre moteur et conserve la room de son Intent.
  */
 class BubbleActivity : FlutterActivity() {
 
     // Le moteur de MainActivity partage entre deux FlutterViews plante le
     // raster thread dans la TaskView Android 15 (tombstone testphone).
     private var bubbleEngine: FlutterEngine? = null
+    var roomId: String? = null
+        private set
+    var payload: String? = null
+        private set
 
     override fun provideFlutterEngine(context: android.content.Context): FlutterEngine =
         FlutterEngine(context.applicationContext).also { engine ->
@@ -36,40 +38,46 @@ class BubbleActivity : FlutterActivity() {
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        intent?.getStringExtra(EXTRA_ROOM)?.takeIf { it.isNotEmpty() }?.let {
-            MainActivity.pendingBubbleRoomId = it
-        }
-        MainActivity.pendingBubblePayload = intent?.getStringExtra(BubbleTapReceiver.EXTRA_PAYLOAD)
+        roomId = intent?.getStringExtra(EXTRA_ROOM)?.takeIf { it.isNotEmpty() }
+        payload = intent?.getStringExtra(BubbleTapReceiver.EXTRA_PAYLOAD)
+        activeCount++
         super.onCreate(savedInstanceState)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        roomId = intent.getStringExtra(EXTRA_ROOM)?.takeIf { it.isNotEmpty() }
+        payload = intent.getStringExtra(BubbleTapReceiver.EXTRA_PAYLOAD)
+        sendRoomToFlutter()
     }
 
     override fun onResume() {
         super.onResume()
-        // La bulle prend la main sur le moteur partage : cote Dart, bascule
-        // sur la page conversation. Si le handler Dart n'est pas encore pret
-        // (app morte + ouverture par la bulle), Dart reclamera le pending via
-        // getPendingBubbleRoom a son demarrage.
-        MainActivity.pendingBubbleRoomId?.let { room ->
+        sendRoomToFlutter()
+        roomId?.let {
+            BubbleNotificationHelper.onBubbleOpened(this, intent?.getStringExtra(EXTRA_SHORTCUT) ?: it)
+        }
+    }
+
+    private fun sendRoomToFlutter() {
+        // Si Dart n'ecoute pas encore, il lira cette instance via getPendingBubbleRoom.
+        roomId?.let { room ->
             try {
                 bubbleEngine?.let { eng ->
                     MethodChannel(
                         eng.dartExecutor.binaryMessenger,
                         MainActivity.BUBBLE_CHANNEL,
-                    ).invokeMethod("onBubbleRoom", mapOf("roomId" to room, "payload" to MainActivity.pendingBubblePayload))
+                    ).invokeMethod("onBubbleRoom", mapOf("roomId" to room, "payload" to payload))
                 }
             } catch (e: Exception) {
-                // Dart pas encore a l'ecoute : le pending sera demande au boot Dart
+                // Dart pas encore a l'ecoute : le pending sera demande au boot Dart.
             }
-        }
-        // La conversation est affichee en bulle : sa notif a fait son travail.
-        MainActivity.pendingBubbleRoomId?.let {
-            BubbleNotificationHelper.onBubbleOpened(this, intent?.getStringExtra(EXTRA_SHORTCUT) ?: it)
         }
     }
 
     override fun onDestroy() {
-        MainActivity.pendingBubbleRoomId = null
-        MainActivity.pendingBubblePayload = null
+        activeCount--
         super.onDestroy()
         bubbleEngine?.destroy()
         bubbleEngine = null
@@ -85,6 +93,8 @@ class BubbleActivity : FlutterActivity() {
         }
 
     companion object {
+        var activeCount = 0
+            private set
         const val EXTRA_ROOM = "bubble_room"
         const val EXTRA_SHORTCUT = "bubble_shortcut"
     }

@@ -43,7 +43,7 @@ class MainActivity : FlutterFragmentActivity() {
         // aux deep links ni au tap de notification.
         if (intent.action == Intent.ACTION_MAIN &&
             intent.hasCategory(Intent.CATEGORY_LAUNCHER) &&
-            pendingBubbleRoomId != null
+            BubbleActivity.activeCount > 0
         ) {
             engine?.let { eng ->
                 MethodChannel(eng.dartExecutor.binaryMessenger, BUBBLE_CHANNEL)
@@ -70,11 +70,6 @@ class MainActivity : FlutterFragmentActivity() {
     companion object {
         const val BUBBLE_CHANNEL = "chat.fluffy/bubbles"
         var engine: FlutterEngine? = null
-
-        // Fork M6 : piece a buller en attente (cas app morte -> ouverture
-        // par la bulle : Dart la reclamera via getPendingBubbleRoom)
-        var pendingBubbleRoomId: String? = null
-        var pendingBubblePayload: String? = null
 
         // Fork: le moteur étant créé à la main (provideEngine), configureFlutterEngine
         // n'est pas toujours appelé — on enregistre le canal natif dès la création.
@@ -183,10 +178,10 @@ class MainActivity : FlutterFragmentActivity() {
                             bubbleActivity?.isLaunchedFromBubble == true
                     )
                 } else if (call.method == "getPendingBubblePayload") {
-                    result.success(if (bubbleActivity != null) pendingBubblePayload else null)
+                    result.success(bubbleActivity?.payload)
                 } else if (call.method == "getPendingBubbleRoom") {
-                    // Fork M6 : Dart demande la piece en attente au demarrage
-                    result.success(if (bubbleActivity != null) pendingBubbleRoomId else null)
+                    // Chaque moteur ne lit que l'Intent de sa propre activite.
+                    result.success(bubbleActivity?.roomId)
                 } else if (call.method == "openNotificationSettings") {
                     try {
                         openNotificationSettings(context)
