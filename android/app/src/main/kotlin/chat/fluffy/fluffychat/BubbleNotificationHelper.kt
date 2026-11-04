@@ -109,17 +109,34 @@ object BubbleNotificationHelper {
         try {
             val manager =
                 context.getSystemService(ShortcutManager::class.java) ?: return
-            val legacy = manager.dynamicShortcuts
-                .map { it.id }
-                .filter { it.startsWith("!") }
-            if (legacy.isEmpty()) return
-            manager.removeDynamicShortcuts(legacy)
-            manager.removeLongLivedShortcuts(legacy)
-            lastPushedShortcutHash.keys.removeAll(legacy.toSet())
+            val bubblesEnabled = context.getSharedPreferences(
+                "FlutterSharedPreferences",
+                Context.MODE_PRIVATE,
+            ).getBoolean("flutter.chat.fluffy.android_bubbles", false)
+            val stale = manager.dynamicShortcuts.filter { shortcut ->
+                shortcut.id.startsWith("!") ||
+                    // Raccourcis crees par le plugin flutter_shortcuts_new
+                    // (avant ce correctif) : sans categorie conversation,
+                    // invisibles du selecteur de bulles mais comptant dans
+                    // le quota. En mode bulles, le chemin natif est seul
+                    // proprietaire des ids « private-avatar- ».
+                    (
+                        bubblesEnabled &&
+                            shortcut.id.startsWith("private-avatar-") &&
+                            shortcut.categories?.contains(
+                                "android.shortcut.conversation",
+                            ) != true
+                        )
+            }
+            if (stale.isEmpty()) return
+            val ids = stale.map { it.id }
+            manager.removeDynamicShortcuts(ids)
+            manager.removeLongLivedShortcuts(ids)
+            lastPushedShortcutHash.keys.removeAll(ids.toSet())
             Log.i(
                 "BubbleHelper",
-                "cleanupLegacyShortcuts: removed ${legacy.size} legacy " +
-                    "room-id shortcut(s)",
+                "cleanupLegacyShortcuts: removed ${ids.size} stale " +
+                    "shortcut(s): $ids",
             )
         } catch (e: Exception) {
             Log.w("BubbleHelper", "cleanupLegacyShortcuts failed", e)
