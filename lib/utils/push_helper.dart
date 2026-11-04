@@ -385,7 +385,16 @@ Future<void> _tryPushHelper(
 
   final title = event.room.getLocalizedDisplayname(MatrixLocals(l10n));
 
-  if (PlatformInfos.isAndroid && messagingStyleInformation == null) {
+  // Fork: quand les bulles sont actives, le raccourci de conversation natif
+  // (BubbleNotificationHelper.ensureBubbleShortcut) est le seul proprietaire
+  // de l'id de shortcut. Le plugin flutter_shortcuts_new ne positionne JAMAIS
+  // la categorie « android.shortcut.conversation » : le pousser sur le meme
+  // id (message mono-emoji, notif sans style actif, etc.) retire la
+  // conversation du selecteur de bulles, et ses shortcuts de groupe
+  // consomment le quota systeme de shortcuts dynamiques.
+  if (PlatformInfos.isAndroid &&
+      messagingStyleInformation == null &&
+      !AppSettings.androidBubbles.value) {
     if (!operation.isCurrent) return;
     await _setShortcut(event, l10n, title, roomAvatarFile, operation);
   }

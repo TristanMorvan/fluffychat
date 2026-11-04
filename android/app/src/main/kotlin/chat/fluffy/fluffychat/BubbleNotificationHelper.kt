@@ -70,6 +70,62 @@ object BubbleNotificationHelper {
     private val history =
         java.util.concurrent.ConcurrentHashMap<String, MutableList<Pair<String?, String>>>()
 
+    // Fork: hash du dernier contenu pousse par shortcut. ShortcutService
+    // rate-limite les mises a jour dynamiques (maxUpdatesPerInterval) et
+    // JETE silencieusement l'excedent sans exception : re-pousser le meme
+    // contenu a chaque message peut faire disparaitre une vraie mise a jour
+    // (nouvel avatar, nouvelle conversation).
+    private val lastPushedShortcutHash =
+        java.util.concurrent.ConcurrentHashMap<String, Int>()
+
+    // Hash de contenu d'un avatar decode : Bitmap.hashCode() est une identite,
+    // deux decodages des memes octets ne correspondraient jamais.
+    private fun avatarContentHash(bitmap: Bitmap): Int {
+        var hash = bitmap.byteCount
+        val stepX = (bitmap.width / 8).coerceAtLeast(1)
+        val stepY = (bitmap.height / 8).coerceAtLeast(1)
+        var y = 0
+        while (y < bitmap.height) {
+            var x = 0
+            while (x < bitmap.width) {
+                hash = hash * 31 + bitmap.getPixel(x, y)
+                x += stepX
+            }
+            y += stepY
+        }
+        return hash
+    }
+
+    /**
+     * Fork: purge des raccourcis de conversation d'avant « private-avatar- »
+     * (id = room id Matrix brut, prefixe « ! »). longLived, ils survivent
+     * aux mises a jour de l'app : le selecteur de bulles montre alors la
+     * MEME conversation deux fois, dont une avec une icone perimee (avatar
+     * amont ou initiales d'avant l'avatar prive), et les doublons mangent le
+     * quota systeme de raccourcis dynamiques.
+     */
+    fun cleanupLegacyShortcuts(context: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        try {
+            val manager =
+                context.getSystemService(ShortcutManager::class.java) ?: return
+            val legacy = manager.dynamicShortcuts
+                .map { it.id }
+                .filter { it.startsWith("!") }
+            if (legacy.isEmpty()) return
+            manager.removeDynamicShortcuts(legacy)
+            manager.removeLongLivedShortcuts(legacy)
+            lastPushedShortcutHash.keys.removeAll(legacy.toSet())
+            Log.i(
+                "BubbleHelper",
+                "cleanupLegacyShortcuts: removed ${legacy.size} legacy " +
+                    "room-id shortcut(s)",
+            )
+        } catch (e: Exception) {
+            Log.w("BubbleHelper", "cleanupLegacyShortcuts failed", e)
+        }
+    }
+
     // Fork M6 : la bulle s'ouvre (tap cercle / autoExpand) -> la notif a fait
     // son travail ; on la retire et on purge l'historique.
     fun onBubbleOpened(context: Context, roomId: String) {
@@ -226,6 +282,25 @@ object BubbleNotificationHelper {
         payload: String? = null,
     ) {
         if (shortcutId.isEmpty()) return
+        val contentHash = title.hashCode() * 31 + avatarContentHash(avatarBitmap)
+        val shortcutManager = context.getSystemService(ShortcutManager::class.java)
+        if (shortcutManager != null &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1
+        ) {
+            val existing = try {
+                shortcutManager.dynamicShortcuts.firstOrNull { it.id == shortcutId }
+            } catch (e: Exception) {
+                null
+            }
+            if (existing != null &&
+                lastPushedShortcutHash[shortcutId] == contentHash &&
+                existing.categories?.contains("android.shortcut.conversation") == true
+            ) {
+                // Contenu inchange et raccourci toujours en categorie
+                // conversation : rien a pousser (menage le rate-limit).
+                return
+            }
+        }
         try {
             // Intent du shortcut : ouvre l'app (package cible explicite)
             val intent = Intent(context, MainActivity::class.java).apply {
@@ -285,9 +360,33 @@ object BubbleNotificationHelper {
                 ShortcutManagerCompat.pushDynamicShortcut(context, shortcut)
             }
         } catch (e: Exception) {
-            // quota de shortcuts dépassé / ROM capricieuse : la notif
-            // classique reste émise, on ne casse pas le flux de notification
-            Log.w("BubbleHelper", "ensureBubbleShortcut($shortcutId) failed", e)
+            // quota de shortcuts depasse / ROM capricieuse : la notif
+            // classique reste emise, on ne casse pas le flux de notification.
+            // Log.e : un shortcut absent = conversation invisible du
+            // selecteur de bulles, ce n'est pas un detail.
+            lastPushedShortcutHash.remove(shortcutId)
+            Log.e("BubbleHelper", "ensureBubbleShortcut($shortcutId) failed", e)
+            return
+        }
+        lastPushedShortcutHash[shortcutId] = contentHash
+        // pushDynamicShortcut ne leve AUCUNE exception quand ShortcutService
+        // rate-limite : la mise a jour est simplement jetee. Relire la liste
+        // apres push est le seul signal disponible.
+        if (shortcutManager != null &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1
+        ) {
+            try {
+                if (shortcutManager.dynamicShortcuts.none { it.id == shortcutId }) {
+                    lastPushedShortcutHash.remove(shortcutId)
+                    Log.e(
+                        "BubbleHelper",
+                        "ensureBubbleShortcut($shortcutId): absent after push " +
+                            "(dynamic shortcut quota or rate limit)",
+                    )
+                }
+            } catch (e: Exception) {
+                Log.w("BubbleHelper", "post-push verification failed", e)
+            }
         }
     }
 

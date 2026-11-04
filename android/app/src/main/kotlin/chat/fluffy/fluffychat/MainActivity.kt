@@ -32,6 +32,10 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Fork: purge des raccourcis legacy (id = room id brut) qui doublent
+        // les conversations dans le selecteur de bulles avec une icone
+        // perimee et mangent le quota de raccourcis dynamiques.
+        BubbleNotificationHelper.cleanupLegacyShortcuts(applicationContext)
         forwardBubblePayload(intent)
     }
 

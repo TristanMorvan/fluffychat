@@ -178,4 +178,35 @@ void main() {
       }
     },
   );
+
+  test(
+    "bubble mode owns conversation shortcuts, plugin push cannot uncategorize",
+    () {
+      final push = File("lib/utils/push_helper.dart")
+          .readAsStringSync()
+          .replaceAll(RegExp(r"\s+"), " ");
+      // flutter_shortcuts_new never sets the conversation category: pushing
+      // it over the native shortcut id removes the conversation from the
+      // bubble picker. It must not run while bubbles are enabled.
+      expect(
+        push,
+        contains(
+          "messagingStyleInformation == null && !AppSettings.androidBubbles.value",
+        ),
+      );
+    },
+  );
+
+  test("native cleanup removes legacy room-id conversation shortcuts", () {
+    final helper = File(
+      "android/app/src/main/kotlin/chat/fluffy/fluffychat/"
+      "BubbleNotificationHelper.kt",
+    ).readAsStringSync();
+    expect(helper, contains("fun cleanupLegacyShortcuts"));
+    expect(helper, contains("removeLongLivedShortcuts"));
+    final main = File(
+      "android/app/src/main/kotlin/chat/fluffy/fluffychat/MainActivity.kt",
+    ).readAsStringSync();
+    expect(main, contains("cleanupLegacyShortcuts"));
+  });
 }
