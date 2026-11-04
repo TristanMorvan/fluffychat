@@ -122,6 +122,9 @@ class ChatEventList extends StatelessWidget {
     final hasWallpaper =
         controller.room.client.applicationAccountConfig.wallpaperUrl != null;
 
+    // Captured by the controller for scroll-anchor measurements
+    // (utils/scroll_anchor.dart); a plain field write, no setState.
+    controller.listContext = context;
     return SelectionArea(
       child: MediaQuery(
         data: MediaQuery.of(context).copyWith(

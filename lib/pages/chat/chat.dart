@@ -30,6 +30,7 @@ import 'package:fluffychat/utils/ogg_opus_remuxer.dart';
 import 'package:fluffychat/utils/other_party_can_receive.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
 import 'package:fluffychat/utils/quick_send_emoji.dart';
+import 'package:fluffychat/utils/scroll_anchor.dart';
 import 'package:fluffychat/utils/show_scaffold_dialog.dart';
 import 'package:fluffychat/widgets/adaptive_dialogs/show_ok_cancel_alert_dialog.dart';
 import 'package:fluffychat/widgets/adaptive_dialogs/show_text_input_dialog.dart';
@@ -186,6 +187,17 @@ class ChatController extends State<ChatPageWithRoom>
 
   bool _scrolledUp = false;
 
+  /// Set by the event list build; used for scroll-anchor measurements
+  /// (utils/scroll_anchor.dart).
+  BuildContext? listContext;
+
+  /// Keeps the reading position stable when new events arrive while the
+  /// user is scrolled up (see utils/scroll_anchor.dart).
+  final ChatScrollAnchors _scrollAnchors = ChatScrollAnchors();
+  ScrollAnchorInfo? _scrollAnchor;
+  int _lastVisibleEventCount = -1;
+  bool _programmaticScroll = false;
+
   bool get showScrollDownButton =>
       _scrolledUp || timeline?.allowNewEvent == false;
 
@@ -294,6 +306,7 @@ class ChatController extends State<ChatPageWithRoom>
     await timeline.requestFuture(historyCount: _loadHistoryCount);
 
     if (mostRecentEvent != null) {
+      _programmaticScroll = true;
       setReadMarker(eventId: mostRecentEvent.eventId);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final index = timeline.events.filterByVisibleInGui().indexOf(
@@ -305,6 +318,7 @@ class ChatController extends State<ChatPageWithRoom>
             preferPosition: AutoScrollPosition.begin,
           );
         }
+        _programmaticScroll = false;
       });
     }
   }
@@ -580,7 +594,52 @@ class ChatController extends State<ChatPageWithRoom>
   void updateView() {
     if (!mounted) return;
     setReadMarker();
+    final timeline = this.timeline;
+    final listContext = this.listContext;
+    if (_programmaticScroll ||
+        timeline == null ||
+        listContext == null ||
+        !_scrolledUp) {
+      _scrollAnchor = null;
+    } else {
+      final events = timeline.events.filterByVisibleInGui(
+        threadId: activeThreadId,
+      );
+      _scrollAnchor = _scrollAnchors.measure(
+        listContext,
+        scrollController,
+        eventIdOfIndex: (i) => i >= 0 && i < events.length
+            ? events[i].eventId
+            : null,
+      );
+      _lastVisibleEventCount = events.length;
+    }
     setState(() {});
+    if (_scrollAnchor == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrolledUp) return;
+      final timeline = this.timeline;
+      final listContext = this.listContext;
+      final anchor = _scrollAnchor;
+      _scrollAnchor = null;
+      if (timeline == null || listContext == null || anchor == null) {
+        return;
+      }
+      final events = timeline.events.filterByVisibleInGui(
+        threadId: activeThreadId,
+      );
+      // Only compensate when the timeline content changed (new events
+      // inserted at the bottom push the reading position away).
+      if (events.length == _lastVisibleEventCount) return;
+      _scrollAnchors.apply(
+        listContext,
+        anchor,
+        scrollController,
+        eventIdOfIndex: (i) => i >= 0 && i < events.length
+            ? events[i].eventId
+            : null,
+      );
+    });
   }
 
   Future<void>? loadTimelineFuture;
@@ -1335,11 +1394,16 @@ class ChatController extends State<ChatPageWithRoom>
         scrollToEventIdMarker = eventId;
       });
     }
-    await scrollController.scrollToIndex(
-      eventIndex + 1,
-      duration: FluffyThemes.animationDuration,
-      preferPosition: AutoScrollPosition.middle,
-    );
+    _programmaticScroll = true;
+    try {
+      await scrollController.scrollToIndex(
+        eventIndex + 1,
+        duration: FluffyThemes.animationDuration,
+        preferPosition: AutoScrollPosition.middle,
+      );
+    } finally {
+      _programmaticScroll = false;
+    }
     _updateScrollController();
   }
 
