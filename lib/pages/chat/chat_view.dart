@@ -358,9 +358,25 @@ class ChatView extends StatelessWidget {
                               ),
                             ),
                           ),
-                        GestureDetector(
-                          onTap: controller.clearSingleSelectedEvent,
-                          child: ChatEventList(controller: controller),
+                        NotificationListener<ScrollNotification>(
+                          onNotification: (notification) {
+                            // A real user drag releases the reading-position
+                            // anchor; anything else (new events materializing
+                            // in the lazy layout one or more frames after the
+                            // frame that announced them) keeps the position
+                            // pinned until the layout settles.
+                            if (notification is ScrollUpdateNotification &&
+                                notification.dragDetails != null) {
+                              controller.releaseScrollAnchorByUser();
+                            } else {
+                              controller.reapplyScrollAnchor();
+                            }
+                            return false;
+                          },
+                          child: GestureDetector(
+                            onTap: controller.clearSingleSelectedEvent,
+                            child: ChatEventList(controller: controller),
+                          ),
                         ),
                         Positioned(
                           bottom: 0,

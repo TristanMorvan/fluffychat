@@ -41,9 +41,9 @@ class ChatScrollAnchors {
       if (state is AutoScrollTagState) {
         final renderObject = element.renderObject;
         if (renderObject is RenderBox && renderObject.hasSize) {
-          offsets[state.widget.index] = renderObject.localToGlobal(
-            Offset.zero,
-          ).dy;
+          offsets[state.widget.index] = renderObject
+              .localToGlobal(Offset.zero)
+              .dy;
         }
         return;
       }
@@ -66,7 +66,15 @@ class ChatScrollAnchors {
     required String? Function(int index) eventIdOfIndex,
   }) {
     if (!controller.hasClients) return null;
-    final viewportBottom = controller.position.viewportDimension;
+    // Rows are measured in global coordinates (localToGlobal), so the
+    // viewport bottom must be converted to the same space.
+    final listRenderObject = listContext is Element
+        ? listContext.renderObject
+        : null;
+    final viewportTop = listRenderObject is RenderBox
+        ? listRenderObject.localToGlobal(Offset.zero).dy
+        : 0.0;
+    final viewportBottom = viewportTop + controller.position.viewportDimension;
     ScrollAnchorInfo? anchor;
     for (final entry in _rowOffsets(listContext).entries) {
       // Rows laid out in the cache extent below the screen are not anchors.
@@ -103,7 +111,9 @@ class ChatScrollAnchors {
         break;
       }
     }
-    if (newOffset == null) return false;
+    if (newOffset == null) {
+      return false;
+    }
     final delta = anchor.offsetInViewport - newOffset;
     if (delta == 0) return false;
     final position = controller.position;

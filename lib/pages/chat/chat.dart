@@ -195,8 +195,10 @@ class ChatController extends State<ChatPageWithRoom>
   /// user is scrolled up (see utils/scroll_anchor.dart).
   final ChatScrollAnchors _scrollAnchors = ChatScrollAnchors();
   ScrollAnchorInfo? _scrollAnchor;
-  int _lastVisibleEventCount = -1;
+  double _anchorPixels = 0;
+  double _anchorMax = 0;
   bool _programmaticScroll = false;
+  bool _anchorJumping = false;
 
   bool get showScrollDownButton =>
       _scrolledUp || timeline?.allowNewEvent == false;
@@ -335,6 +337,38 @@ class ChatController extends State<ChatPageWithRoom>
       setState(() => _scrolledUp = false);
       setReadMarker();
     }
+  }
+
+  /// Called when a scroll notification carries user drag details: the user
+  /// took over scrolling, so stop pinning the reading position. The next
+  /// updateView() re-arms the anchor from wherever the user ended up.
+  void releaseScrollAnchorByUser() {
+    _scrollAnchor = null;
+  }
+
+  /// Keeps the reading position pinned while new events extend the list
+  /// below the viewport. New events may materialize in the lazy list
+  /// layout one or more frames after the timeline update, so this runs
+  /// from a [ScrollNotification] listener around the event list on every
+  /// non-user scroll (and after each updateView frame).
+  void reapplyScrollAnchor() {
+    if (!_scrolledUp || _scrollAnchor == null || _anchorJumping) return;
+    if (!scrollController.hasClients) return;
+    final position = scrollController.position;
+    // While idle and scrolled up, extent growth happens below the viewport
+    // (new events, read receipts, typing indicator) and drags the reading
+    // position up by exactly that amount. Pinning (max - pixels) keeps the
+    // visible content frozen without measuring any row.
+    final target = _anchorPixels + (position.maxScrollExtent - _anchorMax);
+    if ((target - position.pixels).abs() > 0.5) {
+      _anchorJumping = true;
+      scrollController.jumpTo(target.clamp(0.0, position.maxScrollExtent));
+      _anchorJumping = false;
+    }
+    // Re-baseline so later legitimate extent changes (rows above the
+    // viewport being built with corrected estimates) do not accumulate.
+    _anchorPixels = target.clamp(0.0, position.maxScrollExtent);
+    _anchorMax = position.maxScrollExtent;
   }
 
   void _loadDraft() {
@@ -596,49 +630,29 @@ class ChatController extends State<ChatPageWithRoom>
     setReadMarker();
     final timeline = this.timeline;
     final listContext = this.listContext;
+    final events = timeline?.events.filterByVisibleInGui(
+      threadId: activeThreadId,
+    );
     if (_programmaticScroll ||
         timeline == null ||
         listContext == null ||
+        events == null ||
         !_scrolledUp) {
       _scrollAnchor = null;
     } else {
-      final events = timeline.events.filterByVisibleInGui(
-        threadId: activeThreadId,
-      );
       _scrollAnchor = _scrollAnchors.measure(
         listContext,
         scrollController,
-        eventIdOfIndex: (i) => i >= 0 && i < events.length
-            ? events[i].eventId
-            : null,
+        eventIdOfIndex: (i) =>
+            i >= 0 && i < events.length ? events[i].eventId : null,
       );
-      _lastVisibleEventCount = events.length;
+      _anchorPixels = scrollController.position.pixels;
+      _anchorMax = scrollController.position.maxScrollExtent;
     }
     setState(() {});
     if (_scrollAnchor == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scrolledUp) return;
-      final timeline = this.timeline;
-      final listContext = this.listContext;
-      final anchor = _scrollAnchor;
-      _scrollAnchor = null;
-      if (timeline == null || listContext == null || anchor == null) {
-        return;
-      }
-      final events = timeline.events.filterByVisibleInGui(
-        threadId: activeThreadId,
-      );
-      // Only compensate when the timeline content changed (new events
-      // inserted at the bottom push the reading position away).
-      if (events.length == _lastVisibleEventCount) return;
-      _scrollAnchors.apply(
-        listContext,
-        anchor,
-        scrollController,
-        eventIdOfIndex: (i) => i >= 0 && i < events.length
-            ? events[i].eventId
-            : null,
-      );
+      reapplyScrollAnchor();
     });
   }
 

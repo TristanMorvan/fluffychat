@@ -141,6 +141,13 @@ class ChatEventList extends StatelessWidget {
             right: horizontalPadding,
           ),
           reverse: true,
+          // Build rows well beyond the viewport so the content extent
+          // does not depend on unstable estimates of unbuilt children:
+          // that instability is what makes the reading position jump
+          // (and makes anchor corrections oscillate) when new events are
+          // inserted at the bottom while scrolled up.
+          // ignore: deprecated_member_use
+          cacheExtent: 2500,
           controller: controller.scrollController,
           keyboardDismissBehavior: PlatformInfos.isIOS
               ? ScrollViewKeyboardDismissBehavior.onDrag
