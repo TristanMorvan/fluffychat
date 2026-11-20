@@ -7,7 +7,7 @@ name: fluffychat
 description: Chat with your friends.
 publish_to: none
 # On version bump please also increase the build number (for F-Droid)
-version: 2.11.5-fork.9+3595
+version: 2.11.6-fork.10+3596
 
 environment:
   sdk: ">=3.11.1 <4.0.0"
@@ -21,7 +21,7 @@ dependencies:
   collection: ^1.18.0
   crop_image: ^1.0.17
   cross_file: ^0.3.5
-  cupertino_ui: ^1.1.4
+  cupertino_ui: ^1.1.6
   desktop_drop: ^0.8.4
   device_info_plus: ^13.3.0
   dynamic_color: ^2.1.0
@@ -33,14 +33,14 @@ dependencies:
   flutter_callkit_incoming: ^3.1.6
   flutter_foreground_task: ^11.0.3
   flutter_linkify: ^6.0.0
-  flutter_local_notifications: ^22.3.3
+  flutter_local_notifications: ^23.0.0
   flutter_localizations:
     sdk: flutter
   flutter_map: ^8.3.2
   flutter_new_badger: ^2.0.0
   flutter_secure_storage: ^11.2.0
   flutter_shortcuts_new: ^2.1.0
-  flutter_vodozemac: ^0.8.1
+  flutter_vodozemac: ^0.9.0
   flutter_web_auth_2: ^5.1.0
   flutter_webrtc: ^1.6.2+hotfix.3
   geolocator: ^14.1.2
@@ -55,13 +55,13 @@ dependencies:
   just_audio: ^0.10.6
   just_audio_media_kit: ^2.1.0
   latlong2: ^0.10.1
-  light_compressor_v2: ^1.10.0
+  light_compressor_v2: ^1.11.0
   livekit_client: ^2.13.2
   local_auth: ^3.0.2
   lottie: ^3.8.2
   managed_configurations: ^1.2.0
   material_ui: 1.8.0
-  matrix: ^14.1.0
+  matrix: ^16.0.4
   media_kit_libs_linux: ^1.2.1
   media_kit_libs_windows_audio: ^1.0.9
   mime: ^2.1.0
@@ -104,7 +104,7 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   license_checker: ^1.6.2
-  vodozemac: ^0.8.0
+  vodozemac: ^0.9.0
 
 flutter:
   generate: true
@@ -113,7 +113,7 @@ flutter:
     - assets/
     - assets/logo/mini/
     - assets/sounds/
-    - assets/vodozemac/0.8.1/
+    - assets/vodozemac/0.9.0/
 
 hooks:
   user_defines:

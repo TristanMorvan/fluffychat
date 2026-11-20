@@ -205,10 +205,9 @@ Future<void> _tryPushHelper(
   // Calculate the body
   final body = event.type == EventTypes.Encrypted
       ? l10n.newMessageInFluffyChat
-      : await event.calcLocalizedBody(
+      : event.calcLocalizedBody(
           matrixLocals,
           plaintextBody: true,
-          withSenderNamePrefix: false,
           hideReply: true,
           hideEdit: true,
           removeMarkdown: true,
@@ -320,14 +319,9 @@ Future<void> _tryPushHelper(
           groupConversation: !event.room.isDirectChat,
           messages: [newMessage],
         ),
-    ticker: event.calcLocalizedBodyFallback(
-      matrixLocals,
-      plaintextBody: true,
-      withSenderNamePrefix: !event.room.isDirectChat,
-      hideReply: true,
-      hideEdit: true,
-      removeMarkdown: true,
-    ),
+    ticker: event.room.isDirectChat
+        ? body
+        : l10n.senderMessage(senderName, body),
     importance: Importance.high,
     priority: Priority.max,
     groupKey: client.clientName,
